@@ -1,0 +1,3 @@
+"""
+Counselor Backend - основной пакет
+"""
