@@ -1,0 +1,15 @@
+meta {
+  name: cv upload
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://localhost:8000/cv/upload
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

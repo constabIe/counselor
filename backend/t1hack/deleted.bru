@@ -1,0 +1,33 @@
+meta {
+  name: deleted
+  type: http
+  seq: 9
+}
+
+get {
+  url: http://localhost:8000/cv/:ids/download
+  body: multipartForm
+  auth: bearer
+}
+
+params:path {
+  ids: 2794c36d-58ca-467d-885d-eeddd8e4c92e
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMzA4ZDk1Mi0wYzI5LTQ4NGYtYTVjMC0yODFkZWJhZjYwMTUiLCJleHAiOjE3NTgzNjI5NTB9.OBCCqfgYFbo3G8nRouZxnmA9Qjx7SFMoGjvLRCPqkzo
+}
+
+body:multipart-form {
+  : 
+  file: @file(/Users/tomatocoder/Downloads/IT CV Template.pdf)
+}
+
+body:file {
+  file: @file(/Users/tomatocoder/Downloads/Certificates Diploma.pdf) @contentType(application/pdf)
+  ~file: @file(/Users/tomatocoder/Downloads/IT CV Template.pdf) @contentType(application/pdf)
+}
+
+settings {
+  encodeUrl: true
+}

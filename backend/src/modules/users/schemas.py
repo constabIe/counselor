@@ -1,0 +1,38 @@
+from __future__ import annotations
+
+from uuid import UUID
+from typing import Optional
+
+from pydantic import BaseModel, Field, EmailStr
+
+from src.storages.sql.models import UserRole
+
+
+class UserRegisterIn(BaseModel):
+    email: EmailStr = Field(..., description="Email пользователя")
+    password: str = Field(..., min_length=6, description="Пароль (минимум 6 символов)")
+    full_name: str = Field(..., min_length=2, max_length=255, description="Полное имя")
+
+
+class UserLoginIn(BaseModel):
+    email: EmailStr = Field(..., description="Email пользователя")
+    password: str = Field(..., description="Пароль")
+
+
+class UserOut(BaseModel):
+    id: UUID = Field(..., description="ID пользователя")
+    email: str = Field(..., description="Email пользователя")
+    full_name: str = Field(..., description="Полное имя")
+    role: UserRole = Field(..., description="Роль пользователя")
+    is_active: bool = Field(..., description="Активен ли пользователь")
+
+
+class TokenResponse(BaseModel):
+    access_token: str = Field(..., description="JWT токен доступа")
+    token_type: str = Field(default="bearer", description="Тип токена")
+    user: UserOut = Field(..., description="Информация о пользователе")
+
+
+class TokenData(BaseModel):
+    user_id: Optional[UUID] = None
+    email: Optional[str] = None

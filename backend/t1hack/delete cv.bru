@@ -1,0 +1,19 @@
+meta {
+  name: delete cv
+  type: http
+  seq: 6
+}
+
+delete {
+  url: http://localhost:8000/cv/:ids
+  body: none
+  auth: inherit
+}
+
+params:path {
+  ids: 
+}
+
+settings {
+  encodeUrl: true
+}
