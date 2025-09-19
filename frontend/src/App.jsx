@@ -263,70 +263,192 @@ function LandingPage({ onStart }) {
 }
 
 function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin }) {
+  const [mode, setMode] = React.useState('login')
   const [loginRole, setLoginRole] = React.useState('employee')
+  const [loginEmail, setLoginEmail] = React.useState('')
+  const [loginPassword, setLoginPassword] = React.useState('')
+  const [registerRole, setRegisterRole] = React.useState('employee')
+  const [registerEmail, setRegisterEmail] = React.useState('')
+  const [registerName, setRegisterName] = React.useState('')
+  const [registerPassword, setRegisterPassword] = React.useState('')
+  const [registerConfirm, setRegisterConfirm] = React.useState('')
+
+  const openRegister = () => {
+    setRegisterRole(loginRole)
+    setMode('register')
+  }
+
+  const backToLogin = () => {
+    setMode('login')
+    setRegisterEmail('')
+    setRegisterName('')
+    setRegisterPassword('')
+    setRegisterConfirm('')
+  }
+
+  const handleRegister = () => {
+    if (registerRole === 'employee') {
+      onRegisterEmployee()
+    } else {
+      onRegisterHr()
+    }
+  }
 
   return (
     <div className="auth">
       <header className="dashboard-header">
-        <span className="brand">HR-АССИСТЕНТ</span>
+        <span className="brand">HR-консультант</span>
         <button className="btn btn-ghost btn-small" type="button" onClick={onBack}>
-          ← На главную
+          На главную
         </button>
       </header>
 
       <div className="auth__content">
-        <div className="auth__cards">
-          <article className="auth-card auth-card--employee">
-            <h2>Я сотрудник</h2>
-            <p>Создайте профиль, пройдите краткий onboarding и загрузите своё CV.</p>
-            <button className="btn btn-purple btn-full" type="button" onClick={onRegisterEmployee}>
-              Зарегистрироваться
-            </button>
-          </article>
+        {mode === 'login' && (
+          <section className="auth__login auth__panel">
+            <div className="auth__login-header">
+              <h3>��� ���� ������?</h3>
+              <p className="auth__hint">�롥�� ஫�, �⮡� �த������.</p>
+            </div>
 
-          <article className="auth-card auth-card--hr">
-            <h2>Я HR</h2>
-            <p>Подключитесь к панели управления и управляйте папками с CV кандидатов.</p>
-            <button className="btn btn-outline btn-full" type="button" onClick={onRegisterHr}>
-              Зарегистрироваться
-            </button>
-          </article>
-        </div>
+            <div className="auth__role">
+              <label className={`auth__pill ${loginRole === 'employee' ? 'is-active' : ''}`}>
+                <input
+                  type="radio"
+                  name="login-role"
+                  value="employee"
+                  checked={loginRole === 'employee'}
+                  onChange={() => setLoginRole('employee')}
+                />
+                ����㤭��
+              </label>
+              <label className={`auth__pill ${loginRole === 'hr' ? 'is-active' : ''}`}>
+                <input
+                  type="radio"
+                  name="login-role"
+                  value="hr"
+                  checked={loginRole === 'hr'}
+                  onChange={() => setLoginRole('hr')}
+                />
+                HR
+              </label>
+            </div>
 
-        <div className="auth__login">
-          <h3>Уже есть аккаунт?</h3>
-          <p className="auth__hint">Выберите роль, чтобы продолжить.</p>
-          <div className="auth__role">
-            <label className={`auth__pill ${loginRole === 'employee' ? 'is-active' : ''}`}>
-              <input
-                type="radio"
-                name="login-role"
-                value="employee"
-                checked={loginRole === 'employee'}
-                onChange={() => setLoginRole('employee')}
-              />
-              Сотрудник
-            </label>
-            <label className={`auth__pill ${loginRole === 'hr' ? 'is-active' : ''}`}>
-              <input
-                type="radio"
-                name="login-role"
-                value="hr"
-                checked={loginRole === 'hr'}
-                onChange={() => setLoginRole('hr')}
-              />
-              HR
-            </label>
-          </div>
-          <button className="btn btn-green btn-full" type="button" onClick={() => onLogin(loginRole)}>
-            Войти
-          </button>
-        </div>
+            <div className="auth__fields">
+              <label className="auth__field">
+                <span>Электронная почта</span>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(event) => setLoginEmail(event.target.value)}
+                  placeholder="name@email.com"
+                />
+              </label>
+              <label className="auth__field">
+                <span>Пароль</span>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                  placeholder="••••••••"
+                />
+              </label>
+            </div>
+
+            <div className="auth__actions">
+              <button className="btn btn-green btn-full" type="button" onClick={() => onLogin(loginRole)}>
+                ����
+              </button>
+              <button className="auth__switch" type="button" onClick={openRegister}>
+                ��ॣ����஢�����
+              </button>
+            </div>
+          </section>
+        )}
+
+        {mode === 'register' && (
+          <section className="auth__panel auth__register">
+            <div className="auth__register-header">
+              <h3>��ॣ����஢�����</h3>
+              <p className="auth__hint">������� ��䨫�, �ன��� ��⪨� onboarding � ����㧨� ᢮� CV.</p>
+            </div>
+
+            <div className="auth__role">
+              <label className={`auth__pill ${registerRole === 'employee' ? 'is-active' : ''}`}>
+                <input
+                  type="radio"
+                  name="register-role"
+                  value="employee"
+                  checked={registerRole === 'employee'}
+                  onChange={() => setRegisterRole('employee')}
+                />
+                ����㤭��
+              </label>
+              <label className={`auth__pill ${registerRole === 'hr' ? 'is-active' : ''}`}>
+                <input
+                  type="radio"
+                  name="register-role"
+                  value="hr"
+                  checked={registerRole === 'hr'}
+                  onChange={() => setRegisterRole('hr')}
+                />
+                HR
+              </label>
+            </div>
+
+            <div className="auth__fields">
+              <label className="auth__field">
+                <span>Электронная почта</span>
+                <input
+                  type="email"
+                  value={registerEmail}
+                  onChange={(event) => setRegisterEmail(event.target.value)}
+                  placeholder="name@email.com"
+                />
+              </label>
+              <label className="auth__field">
+                <span>ФИО</span>
+                <input
+                  type="text"
+                  value={registerName}
+                  onChange={(event) => setRegisterName(event.target.value)}
+                  placeholder="Иванов Иван"
+                />
+              </label>
+              <label className="auth__field">
+                <span>Пароль</span>
+                <input
+                  type="password"
+                  value={registerPassword}
+                  onChange={(event) => setRegisterPassword(event.target.value)}
+                  placeholder="••••••••"
+                />
+              </label>
+              <label className="auth__field">
+                <span>Повтор пароля</span>
+                <input
+                  type="password"
+                  value={registerConfirm}
+                  onChange={(event) => setRegisterConfirm(event.target.value)}
+                  placeholder="••••••••"
+                />
+              </label>
+            </div>
+
+            <div className="auth__actions">
+              <button className="btn btn-purple btn-full" type="button" onClick={handleRegister}>
+                ��ॣ����஢�����
+              </button>
+              <button className="auth__switch" type="button" onClick={backToLogin}>
+                ��� ���� ������?
+              </button>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   )
 }
-
 function EmployeeOnboarding({
   currentSlide,
   onChangeSlide,
