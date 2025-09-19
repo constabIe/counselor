@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: http://localhost:8000/cv/my
+  url: http://localhost:8000/cv/:ids
   body: multipartForm
-  auth: bearer
+  auth: inherit
 }
 
-auth:bearer {
-  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMzA4ZDk1Mi0wYzI5LTQ4NGYtYTVjMC0yODFkZWJhZjYwMTUiLCJleHAiOjE3NTgzNjI5NTB9.OBCCqfgYFbo3G8nRouZxnmA9Qjx7SFMoGjvLRCPqkzo
+params:path {
+  ids: 30c7d570-7437-49ed-9352-cbd49cb09a31
 }
 
 body:multipart-form {

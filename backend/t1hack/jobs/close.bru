@@ -1,0 +1,19 @@
+meta {
+  name: close
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8000/jobs/:job_id/publish
+  body: none
+  auth: inherit
+}
+
+params:path {
+  job_id: 1a4547fa-77e6-497a-bbfb-8b33c09b6ae2
+}
+
+settings {
+  encodeUrl: true
+}

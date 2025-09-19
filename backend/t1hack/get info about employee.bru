@@ -1,0 +1,35 @@
+meta {
+  name: get info about employee
+  type: http
+  seq: 12
+}
+
+get {
+  url: http://localhost:8000/generation/employees/:cv_id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  cv_id: 0e273fab-ca60-4898-b05c-1f426095d659
+}
+
+body:json {
+  {
+    "query": "Требуется team lead для команды разработки",
+    "filters": {
+      "department": "IT",
+      "experience_years_min": 7,
+      "experience_years_max": 15,
+      "skills": ["python", "team-leadership", "architecture"],
+      "level": "senior",
+      "languages": ["english", "russian"],
+      "age_min": 28,
+      "age_max": 45
+    }
+  }
+}
+
+settings {
+  encodeUrl: true
+}

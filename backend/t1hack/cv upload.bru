@@ -4,10 +4,20 @@ meta {
   seq: 3
 }
 
-get {
+post {
   url: http://localhost:8000/cv/upload
-  body: none
+  body: multipartForm
   auth: inherit
+}
+
+body:multipart-form {
+  : 
+  file: @file(/Users/tomatocoder/Downloads/IT CV Template (3).pdf)
+}
+
+body:file {
+  file: @file(/Users/tomatocoder/Downloads/Certificates Diploma.pdf) @contentType(application/pdf)
+  ~file: @file(/Users/tomatocoder/Downloads/IT CV Template.pdf) @contentType(application/pdf)
 }
 
 settings {
