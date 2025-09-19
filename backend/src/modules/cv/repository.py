@@ -14,6 +14,38 @@ from src.storages.sql.models import CV
 logger = logging.getLogger(__name__)
 
 
+async def get_user_active_cv_count(session: AsyncSession, user_id: UUID) -> int:
+    """Возвращает количество активных CV пользователя"""
+    
+    stmt = select(CV).where(CV.user_id == user_id, CV.is_active == True)
+    result = await session.execute(stmt)
+    active_cvs = result.scalars().all()
+    
+    return len(active_cvs)
+
+
+async def deactivate_user_cvs(session: AsyncSession, user_id: UUID) -> int:
+    """Деактивирует все активные CV пользователя и возвращает количество деактивированных"""
+    
+    # Получаем все активные CV пользователя
+    stmt = select(CV).where(CV.user_id == user_id, CV.is_active == True)
+    result = await session.execute(stmt)
+    active_cvs = result.scalars().all()
+    
+    # Деактивируем их
+    deactivated_count = 0
+    for cv in active_cvs:
+        cv.is_active = False
+        session.add(cv)
+        deactivated_count += 1
+    
+    if deactivated_count > 0:
+        await session.commit()
+        logger.info(f"Деактивировано {deactivated_count} CV для пользователя {user_id}")
+    
+    return deactivated_count
+
+
 async def create_cv(
     session: AsyncSession,
     user_id: UUID,
@@ -43,6 +75,11 @@ async def create_cv(
     analysis_status: str = "pending",
 ) -> CV:
     """Создает новую запись CV в базе данных"""
+    
+    # Сначала деактивируем все предыдущие активные CV пользователя
+    deactivated_count = await deactivate_user_cvs(session, user_id)
+    if deactivated_count > 0:
+        logger.info(f"Деактивировано {deactivated_count} старых CV при создании нового")
     
     cv = CV(
         user_id=user_id,

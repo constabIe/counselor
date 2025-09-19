@@ -96,6 +96,29 @@ async def upload_cv(
 
 
 @router.get(
+    "/stats",
+    summary="Статистика CV",
+    description="Получает статистику CV текущего пользователя"
+)
+async def get_cv_stats(
+    current_user: CurrentUserDep,
+    session: DbSessionDep,
+) -> dict:
+    """Получает статистику CV пользователя"""
+    
+    active_count = await cv_repo.get_user_active_cv_count(session, current_user.id)
+    all_cvs = await cv_repo.get_user_cvs(session, current_user.id, include_inactive=True)
+    deleted_cvs = await cv_repo.get_user_deleted_cvs(session, current_user.id)
+    
+    return {
+        "active_cv_count": active_count,
+        "total_cv_count": len(all_cvs),
+        "deleted_cv_count": len(deleted_cvs),
+        "current_active_cv": all_cvs[0].id if all_cvs and active_count > 0 else None
+    }
+
+
+@router.get(
     "/my",
     response_model=List[CVOut],
     summary="Мои CV",
