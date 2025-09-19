@@ -1,17 +1,13 @@
 meta {
   name: my cvs
   type: http
-  seq: 5
+  seq: 3
 }
 
-post {
-  url: http://localhost:8000/cv/upload
+get {
+  url: http://localhost:8000/cv/my
   body: multipartForm
-  auth: bearer
-}
-
-auth:bearer {
-  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMzA4ZDk1Mi0wYzI5LTQ4NGYtYTVjMC0yODFkZWJhZjYwMTUiLCJleHAiOjE3NTgzNjI5NTB9.OBCCqfgYFbo3G8nRouZxnmA9Qjx7SFMoGjvLRCPqkzo
+  auth: inherit
 }
 
 body:multipart-form {

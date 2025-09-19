@@ -100,3 +100,61 @@ class Course(Base, table=True):
     description: Optional[str] = Field(default=None, description="Описание курса")
     created_at: datetime = Field(default_factory=utcnow)
     is_active: bool = Field(default=True)
+
+
+class JobLevel(StrEnum):
+    INTERN = "intern"
+    JUNIOR = "junior"
+    MIDDLE = "middle"
+    SENIOR = "senior"
+    LEAD = "lead"
+    MANAGER = "manager"
+
+
+class JobStatus(StrEnum):
+    ACTIVE = "active"
+    PAUSED = "paused"
+    CLOSED = "closed"
+    DRAFT = "draft"
+
+
+class EmploymentType(StrEnum):
+    FULL_TIME = "full_time"
+    PART_TIME = "part_time"
+    CONTRACT = "contract"
+    INTERNSHIP = "internship"
+
+
+class Job(Base, table=True):
+    __tablename__ = "jobs"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    title: str = Field(max_length=255, description="Название вакансии")
+    department: str = Field(max_length=255, description="Отдел/направление")
+    level: JobLevel = Field(description="Уровень позиции")
+    employment_type: EmploymentType = Field(default=EmploymentType.FULL_TIME, description="Тип занятости")
+    location: Optional[str] = Field(default=None, max_length=255, description="Местоположение")
+    remote_available: bool = Field(default=False, description="Доступна ли удаленная работа")
+    
+    # Описание вакансии
+    description: str = Field(description="Подробное описание вакансии")
+    requirements: str = Field(description="Требования к кандидату")
+    responsibilities: str = Field(description="Обязанности")
+    
+    # Навыки (JSON формат)
+    required_skills: Optional[str] = Field(default=None, description="Требуемые навыки в JSON формате")
+    
+    # Опыт
+    min_experience_years: Optional[int] = Field(default=None, description="Минимальный опыт работы в годах")
+    max_experience_years: Optional[int] = Field(default=None, description="Максимальный опыт работы в годах")
+    
+    # Зарплата
+    average_salary: Optional[int] = Field(default=None, description="Средняя предлагаемая зарплата")
+    salary_currency: str = Field(default="RUB", max_length=10, description="Валюта зарплаты")
+    
+    # Метаданные
+    status: JobStatus = Field(default=JobStatus.DRAFT, description="Статус вакансии")
+    created_by: uuid.UUID = Field(foreign_key="users.id", description="Кто создал вакансию")
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+    published_at: Optional[datetime] = Field(default=None, description="Дата публикации")

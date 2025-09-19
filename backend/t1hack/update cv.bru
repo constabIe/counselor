@@ -4,14 +4,20 @@ meta {
   seq: 11
 }
 
-get {
+patch {
   url: http://localhost:8000/cv/:ids
-  body: multipartForm
+  body: json
   auth: inherit
 }
 
 params:path {
   ids: 30c7d570-7437-49ed-9352-cbd49cb09a31
+}
+
+body:json {
+  {
+    "skills": "cocksucker"
+  }
 }
 
 body:multipart-form {

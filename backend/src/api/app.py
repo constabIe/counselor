@@ -7,6 +7,7 @@ from src.modules.users.routes import router as users_router
 from src.modules.cv.routes import router as cv_router
 from src.modules.courses.routes import router as courses_router
 from src.modules.generation.routes import router as generation_router
+from src.modules.jobs.routes import router as jobs_router
 
 # Создание FastAPI приложения
 app = FastAPI(
@@ -32,6 +33,7 @@ app.include_router(users_router)
 app.include_router(cv_router)
 app.include_router(courses_router)
 app.include_router(generation_router)
+app.include_router(jobs_router)
 
 # Health check endpoint
 @app.get("/health", tags=["system"])

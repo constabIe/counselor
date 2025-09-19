@@ -36,7 +36,7 @@ async def search_employees_by_tags(
             # Ищем теги в JSON поле tags
             tag_conditions.append(CV.tags.like(f'%"{tag}"%'))
             # Также ищем в навыках
-            tag_conditions.append(CV.skills.like(f'%"{tag}"%'))
+            tag_conditions.append(CV.skills.like(f'%"{tag}"%')) # pyright: ignore[reportAttributeAccessIssue]
             # И в специализации
             tag_conditions.append(CV.specialization.like(f'%{tag}%'))
         

@@ -1,13 +1,17 @@
 meta {
   name: get info about employee
   type: http
-  seq: 14
+  seq: 12
 }
 
-post {
-  url: http://localhost:8000/generation/employees
+get {
+  url: http://localhost:8000/generation/employees/:cv_id
   body: json
   auth: inherit
+}
+
+params:path {
+  cv_id: 0e273fab-ca60-4898-b05c-1f426095d659
 }
 
 body:json {
