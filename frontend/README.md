@@ -1,4 +1,4 @@
-Простой шаблон проекта на React (Vite)
+ Запуск проекта на React:
 
 Содержимое
 - index.html — корневой файл
@@ -14,15 +14,4 @@
    npm run dev
 
 3) Откройте ссылку из терминала (обычно http://localhost:5173).
-
-Сборка
-- Production билд:
-  npm run build
-
-- Локальный предпросмотр собранной версии:
-  npm run preview
-
-Примечания
-- Проект использует Vite и @vitejs/plugin-react для JSX и HMR.
-- Хотите TypeScript или ESLint/Prettier? Скажите — добавлю.
 

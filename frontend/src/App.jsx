@@ -535,9 +535,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
   ]
 
   const courses = [
-    { id: 'c1', title: 'Алгоритмы и структуры данных', provider: 'Coursera' },
-    { id: 'c2', title: 'React: продвинутые паттерны', provider: 'Udemy' },
-    { id: 'c3', title: 'Data Analysis с Python', provider: 'Stepik' },
+    { id: 'c1', title: 'Продвинутые HR‑технологии', provider: 'Coursera', url: 'https://coursera.org', direction: 'HR', level: 'Advanced', duration: 56, description: 'Современные HR‑инструменты: People Analytics, автоматизация подбора, HRIS.' },{ id: 'c2', title: 'React: продвинутые паттерны', provider: 'Udemy', url: 'https://udemy.com', direction: 'Frontend', level: 'Intermediate', duration: 24, description: 'Хуки, контекст, оптимизация производительности, архитектура компонентов.' },{ id: 'c3', title: 'Data Analysis с Python', provider: 'Stepik', url: 'https://stepik.org', direction: 'Data', level: 'Beginner', duration: 36, description: 'Pandas, визуализация, базовый SQL, подготовка данных.' },
   ]
 
   const roadmap = [
@@ -707,14 +705,32 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
       {activeTab === 'courses' && (
         <section className="panel">
           <h3>Рекомендуемые курсы</h3>
-          <ul className="list">
-            {courses.map((c) => (
-              <li key={c.id} className="list__item">
-                <span className="list__title">{c.title}</span>
-                <span className="list__meta">{c.provider}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="hr-dashboard__grid">
+            {courses.map((c) => {
+              const accent = {
+                HR: '#5eead4',
+                Frontend: '#a855f7',
+                Data: '#f97316',
+                Other: '#38bdf8',
+              }[c.direction] || '#bef264'
+              
+              return (
+                <article key={c.id} className="folder-card" style={{ '--accent': accent }}>
+                  <div className="folder-card__icon">
+                    <span className="folder-card__badge">{c.level}</span>
+                  </div>
+                  <div className="folder-card__body">
+                    <h2>{c.title}</h2>
+                    <p>{c.provider}</p>
+                    <span className="folder-card__meta">{c.duration} академических часов</span>
+                  </div>
+                  <button className="folder-card__action" type="button" onClick={() => window.open(c.url, '_blank')}>
+                    Открыть курс
+                  </button>
+                </article>
+              )
+            })}
+          </div>
           <h3>Роадмап</h3>
           <ul className="list">
             {roadmap.map((r, i) => (
@@ -748,6 +764,7 @@ function HrDashboard({ onLogout }) {
   const hrName = 'Садыков Хасан Альбертович'
   const [activeTab, setActiveTab] = React.useState('search')
   const [expandedFolders, setExpandedFolders] = React.useState({})
+  const [activeFolder, setActiveFolder] = React.useState(null)
 
   const [filters, setFilters] = React.useState({
     ageMin: 21,
@@ -792,7 +809,9 @@ function HrDashboard({ onLogout }) {
   }
 
   const update = (key) => (e) => setFilters((p) => ({ ...p, [key]: e.target.value }))
-  const toggleFolder = (id) => setExpandedFolders((p) => ({ ...p, [id]: !p[id] }))
+  // Открытие модального окна с файлами папки
+  const openFolderModal = (folder) => setActiveFolder(folder)
+  const closeFolderModal = () => setActiveFolder(null)
 
   return (
     <div className="hr-dashboard">
@@ -823,8 +842,8 @@ function HrDashboard({ onLogout }) {
       </nav>
 
       {activeTab === 'search' && (
-        <section className="panel split">
-          <aside className="filters">
+        <section className="panel">
+          <div className="filters" style={{marginBottom: 24}}>
             <h3>Базовые фильтры</h3>
             <div className="form-grid">
               <label className="field"><span className="field__label">Возраст, от</span><input className="field__input" type="number" value={filters.ageMin} onChange={update('ageMin')} /></label>
@@ -839,8 +858,7 @@ function HrDashboard({ onLogout }) {
               <label className="field"><span className="field__label">Дата загрузки</span><input className="field__input" type="date" value={filters.uploaded} onChange={update('uploaded')} /></label>
               <label className="field"><span className="field__label">Мин. рейтинг</span><input className="field__input" type="number" value={filters.ratingMin} onChange={update('ratingMin')} /></label>
             </div>
-          </aside>
-
+          </div>
           <section className="chat">
             <div className="chat__messages">
               {messages.map((m, i) => (
@@ -862,41 +880,27 @@ function HrDashboard({ onLogout }) {
       {activeTab === 'folders' && (
         <section className="panel">
           <div className="hr-dashboard__grid">
-            {hrFolders.map((folder) => {
-              const isOpen = Boolean(expandedFolders[folder.id])
-              return (
-                <article key={folder.id} className="folder-card" style={{ '--accent': folder.accent }}>
-                  <div className="folder-card__icon"><FolderIcon className="icon" /></div>
-                  <div className="folder-card__body">
-                    <h2>{folder.name}</h2>
-                    <p>{folder.count} CV</p>
-                    <span>Обновлено {folder.updated}</span>
-                  </div>
-                  <button className="folder-card__action" type="button" onClick={() => toggleFolder(folder.id)} aria-expanded={isOpen}>
-                    {isOpen ? 'Скрыть список' : 'Показать список'}
-                  </button>
-                  {isOpen && (
-                    <ul className="folder-card__list">
-                      {folder.files.map((file) => (
-                        <li key={file.id} className="folder-card__item">
-                          <div className="folder-card__file">
-                            <span className="folder-card__file-icon"><PdfIcon className="icon icon--small" /></span>
-                            <div className="folder-card__file-info">
-                              <p className="folder-card__file-name">{file.name}</p>
-                              <span className="folder-card__file-meta">Загружено {file.uploaded}</span>
-                            </div>
-                          </div>
-                          <span className="folder-card__badge">PDF</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </article>
-              )
-            })}
+            {hrFolders.map((folder) => (
+              <article key={folder.id} className="folder-card" style={{ '--accent': folder.accent }}>
+                <div className="folder-card__icon"><FolderIcon className="icon" /></div>
+                <div className="folder-card__body">
+                  <h2>{folder.name}</h2>
+                  <p>{folder.count} CV</p>
+                  <span>Обновлено {folder.updated}</span>
+                </div>
+                <button className="folder-card__action" type="button" onClick={() => openFolderModal(folder)}>
+                  Открыть папку
+                </button>
+              </article>
+            ))}
           </div>
+          {activeFolder && (
+            <FolderFilesModal folder={activeFolder} onClose={closeFolderModal} />
+          )}
         </section>
       )}
+
+
 
       {showCvModal && (
         <CvResultsModal list={allCvs} onClose={() => setShowCvModal(false)} />
@@ -1149,3 +1153,37 @@ function SubCard({ title, render }) {
     </div>
   )
 }
+
+// Модальное окно для файлов папки
+function FolderFilesModal({ folder, onClose }) {
+  return (
+    <div className="modal" role="dialog" aria-modal="true" style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+      <div className="modal__backdrop" onClick={onClose} />
+      <div className="modal__dialog" role="document" style={{width: '90%', maxWidth: '800px', margin: '0 auto'}}>
+        <header className="modal__header">
+          <h2 style={{fontSize: '1.5rem', marginBottom: '1rem'}}>Файлы папки: {folder.name}</h2>
+          <button className="icon-button icon-button--ghost modal__close" type="button" onClick={onClose}>
+            <CloseIcon className="icon icon--small" />
+          </button>
+        </header>
+        <div className="modal__content" style={{maxHeight: '70vh', overflowY: 'auto', padding: '1.5rem'}}>
+          <ul className="folder-card__list" style={{gap: '1rem'}}>
+            {folder.files.map((file) => (
+              <li key={file.id} className="folder-card__item" style={{padding: '1rem', borderRadius: '8px'}}>
+                <div className="folder-card__file">
+                  <span className="folder-card__file-icon"><PdfIcon className="icon icon--small" /></span>
+                  <div className="folder-card__file-info">
+                    <p className="folder-card__file-name" style={{fontSize: '1.1rem', marginBottom: '0.5rem'}}>{file.name}</p>
+                    <span className="folder-card__file-meta">Загружено {file.uploaded}</span>
+                  </div>
+                </div>
+                <span className="folder-card__badge">PDF</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  )
+}
+
