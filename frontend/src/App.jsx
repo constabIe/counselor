@@ -128,6 +128,27 @@ const hrFolders = [
 ]
 
 export default function App() {
+  const [token, setToken] = React.useState(localStorage.getItem('token'));
+  const [userData, setUserData] = React.useState(null);
+
+  React.useEffect(() => {
+    if (token) {
+      api.getUserProfile(token)
+        .then(data => {
+          setUserData(data);
+          if (data.role.toLowerCase() === 'hr') {
+            setView('hrDashboard');
+          } else {
+            setView('employeeDashboard');
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('token');
+          setToken(null);
+          setView('landing');
+        });
+    }
+  }, [token]);
   const [view, setView] = useState('landing')
   const [onboardingSlide, setOnboardingSlide] = useState(0)
   const [employeeData, setEmployeeData] = useState(() => makeEmployeeData())
@@ -185,6 +206,7 @@ export default function App() {
           onRegisterEmployee={handleEmployeeRegistration}
           onRegisterHr={() => setView('hrDashboard')}
           onLogin={handleLogin}
+          onSetToken={setToken}
         />
       )}
 
@@ -262,7 +284,11 @@ function LandingPage({ onStart }) {
   )
 }
 
-function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin }) {
+import { api } from './api';
+
+function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToken }) {
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
   const [mode, setMode] = React.useState('login')
   const [loginRole, setLoginRole] = React.useState('employee')
   const [loginEmail, setLoginEmail] = React.useState('')
@@ -272,6 +298,8 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin }) {
   const [registerName, setRegisterName] = React.useState('')
   const [registerPassword, setRegisterPassword] = React.useState('')
   const [registerConfirm, setRegisterConfirm] = React.useState('')
+  const [loginError, setLoginError] = React.useState('')
+  const [registerError, setRegisterError] = React.useState('')
 
   const openRegister = () => {
     setRegisterRole(loginRole)
@@ -286,11 +314,74 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin }) {
     setRegisterConfirm('')
   }
 
-  const handleRegister = () => {
-    if (registerRole === 'employee') {
-      onRegisterEmployee()
-    } else {
-      onRegisterHr()
+  const handleRegister = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = {
+        email: registerEmail,
+        password: registerPassword,
+        full_name: registerName,
+      };
+
+      const response = await api.register(data);
+      localStorage.setItem('token', response.access_token);
+      // notify parent about token and navigate
+      if (typeof onSetToken === 'function') onSetToken(response.access_token);
+      if (registerRole === 'employee') {
+        onRegisterEmployee();
+      } else {
+        onRegisterHr();
+      }
+    } catch (error) {
+      // if user already exists, show friendly message
+      if (error && error.status === 409) {
+        setRegisterError('Пользователь с таким email уже существует. Попробуйте войти.');
+        setMode('login');
+        setLoginEmail(registerEmail);
+      } else {
+        setRegisterError(error.message || 'Ошибка при регистрации');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleLogin = async () => {
+    try {
+      setIsLoading(true);
+      setLoginError('');
+      const data = {
+        email: loginEmail,
+        password: loginPassword,
+      };
+
+      const response = await api.login(data);
+      localStorage.setItem('token', response.access_token);
+      if (typeof onSetToken === 'function') onSetToken(response.access_token);
+
+      // fetch profile to determine role
+      try {
+        const profile = await api.getUserProfile(response.access_token);
+        onLogin(profile.role.toLowerCase());
+      } catch (e) {
+        // if profile fetch failed, still call onLogin with chosen role
+        onLogin(loginRole);
+      }
+    } catch (error) {
+      // if backend returns 404 or specific 'user not found' message, switch to register
+      if (error && (error.status === 404 || /not found|does not exist|no user/i.test(error.message))) {
+        setLoginError('Пользователь не найден. Пожалуйста, зарегистрируйтесь.');
+        setRegisterEmail(loginEmail);
+        setRegisterRole(loginRole);
+        setMode('register');
+      } else if (error && error.status === 401) {
+        setLoginError('Неверный пароль.');
+      } else {
+        setLoginError(error.message || 'Ошибка при входе');
+      }
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -333,9 +424,10 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin }) {
               </label>
             </div>
 
+            {loginError && <div className="auth__error">{loginError}</div>}
             <div className="auth__actions">
-              <button className="btn btn-green btn-full" type="button" onClick={() => onLogin(loginRole)}>
-                Войти
+              <button className="btn btn-green btn-full" type="button" onClick={handleLogin} disabled={isLoading}>
+                {isLoading ? 'Загрузка...' : 'Войти'}
               </button>
               <button className="auth__switch" type="button" onClick={openRegister}>
                 Зарегистрироваться
@@ -381,9 +473,10 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin }) {
               </label>
             </div>
 
+            {registerError && <div className="auth__error">{registerError}</div>}
             <div className="auth__actions">
-              <button className="btn btn-purple btn-full" type="button" onClick={handleRegister}>
-                Зарегистрироваться
+              <button className="btn btn-purple btn-full" type="button" onClick={handleRegister} disabled={isLoading}>
+                {isLoading ? 'Загрузка...' : 'Зарегистрироваться'}
               </button>
               <button className="auth__switch" type="button" onClick={backToLogin}>
                 У меня уже есть аккаунт
