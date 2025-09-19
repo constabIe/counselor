@@ -8,7 +8,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
 from fastapi.responses import FileResponse
 
 from src.modules.cv import repository as cv_repo
-from src.modules.cv.schemas import CVUploadResponse, CVOut
+from src.modules.cv.schemas import CVUploadResponse, CVOut, CVUpdate, CVUpdateResponse
 from src.storages.sql.dependencies import DbSessionDep
 from src.modules.users.dependencies import CurrentUserDep
 from src.utils.file_storage import save_cv_file, delete_cv_file, get_file_size_mb
@@ -96,6 +96,29 @@ async def upload_cv(
 
 
 @router.get(
+    "/stats",
+    summary="Статистика CV",
+    description="Получает статистику CV текущего пользователя"
+)
+async def get_cv_stats(
+    current_user: CurrentUserDep,
+    session: DbSessionDep,
+) -> dict:
+    """Получает статистику CV пользователя"""
+    
+    active_count = await cv_repo.get_user_active_cv_count(session, current_user.id)
+    all_cvs = await cv_repo.get_user_cvs(session, current_user.id, include_inactive=True)
+    deleted_cvs = await cv_repo.get_user_deleted_cvs(session, current_user.id)
+    
+    return {
+        "active_cv_count": active_count,
+        "total_cv_count": len(all_cvs),
+        "deleted_cv_count": len(deleted_cvs),
+        "current_active_cv": all_cvs[0].id if all_cvs and active_count > 0 else None
+    }
+
+
+@router.get(
     "/my",
     response_model=List[CVOut],
     summary="Мои CV",
@@ -121,11 +144,20 @@ async def get_my_cvs(
             skills=cv.skills,
             experience_years=cv.experience_years,
             education=cv.education,
-            age=cv.age,
+            additional_education=cv.additional_education,
             jobs=cv.jobs,
+            current_role=cv.current_role,
+            responsibilities=cv.responsibilities,
             languages=cv.languages,
+            age=cv.age,
+            department=cv.department,
+            grade=cv.grade,
+            specialization=cv.specialization,
+            competencies=cv.competencies,
+            comments=cv.comments,
             rating=cv.rating,
             tags=cv.tags,
+            career_path=cv.career_path,
         )
         for cv in cvs
     ]
@@ -157,11 +189,20 @@ async def get_deleted_cvs(
             skills=cv.skills,
             experience_years=cv.experience_years,
             education=cv.education,
-            age=cv.age,
+            additional_education=cv.additional_education,
             jobs=cv.jobs,
+            current_role=cv.current_role,
+            responsibilities=cv.responsibilities,
             languages=cv.languages,
+            age=cv.age,
+            department=cv.department,
+            grade=cv.grade,
+            specialization=cv.specialization,
+            competencies=cv.competencies,
+            comments=cv.comments,
             rating=cv.rating,
             tags=cv.tags,
+            career_path=cv.career_path,
         )
         for cv in cvs
     ]
@@ -206,11 +247,20 @@ async def get_cv(
         skills=cv.skills,
         experience_years=cv.experience_years,
         education=cv.education,
-        age=cv.age,
+        additional_education=cv.additional_education,
         jobs=cv.jobs,
+        current_role=cv.current_role,
+        responsibilities=cv.responsibilities,
         languages=cv.languages,
+        age=cv.age,
+        department=cv.department,
+        grade=cv.grade,
+        specialization=cv.specialization,
+        competencies=cv.competencies,
+        comments=cv.comments,
         rating=cv.rating,
         tags=cv.tags,
+        career_path=cv.career_path,
     )
 
 
@@ -281,6 +331,54 @@ async def delete_cv(
 
 
 @router.patch(
+    "/{cv_id}",
+    response_model=CVUpdateResponse,
+    summary="Обновить поля CV",
+    description="Обновляет указанные поля CV и возвращает пересчитанный рейтинг"
+)
+async def update_cv(
+    cv_id: UUID,
+    cv_update: CVUpdate,
+    current_user: CurrentUserDep,
+    session: DbSessionDep,
+) -> CVUpdateResponse:
+    """Обновляет поля CV"""
+    
+    # Получаем только заполненные поля для обновления
+    update_fields = {
+        field_name: field_value 
+        for field_name, field_value in cv_update.model_dump(exclude_unset=True).items()
+        if field_value is not None
+    }
+    
+    if not update_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Необходимо указать хотя бы одно поле для обновления"
+        )
+    
+    # Обновляем CV
+    updated_cv = await cv_repo.update_cv_fields(
+        session, 
+        cv_id, 
+        current_user.id, 
+        **update_fields
+    )
+    
+    if not updated_cv:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="CV не найдено или недостаточно прав"
+        )
+    
+    return CVUpdateResponse(
+        id=updated_cv.id,
+        rating=updated_cv.rating,
+        updated_fields=list(update_fields.keys())
+    )
+
+
+@router.patch(
     "/{cv_id}/restore",
     response_model=CVOut,
     summary="Восстановить CV",
@@ -336,9 +434,18 @@ async def restore_cv(
         skills=restored_cv.skills,
         experience_years=restored_cv.experience_years,
         education=restored_cv.education,
-        age=restored_cv.age,
+        additional_education=restored_cv.additional_education,
         jobs=restored_cv.jobs,
+        current_role=restored_cv.current_role,
+        responsibilities=restored_cv.responsibilities,
         languages=restored_cv.languages,
+        age=restored_cv.age,
+        department=restored_cv.department,
+        grade=restored_cv.grade,
+        specialization=restored_cv.specialization,
+        competencies=restored_cv.competencies,
+        comments=restored_cv.comments,
         rating=restored_cv.rating,
         tags=restored_cv.tags,
+        career_path=restored_cv.career_path,
     )

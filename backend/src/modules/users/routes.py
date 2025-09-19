@@ -57,6 +57,7 @@ async def register(
                 full_name=user.full_name,
                 role=user.role,
                 is_active=user.is_active,
+                xp=user.xp,
             )
         )
         
@@ -112,6 +113,7 @@ async def login(
             full_name=user.full_name,
             role=user.role,
             is_active=user.is_active,
+            xp=user.xp,
         )
     )
 
@@ -132,4 +134,5 @@ async def get_current_user_info(
         full_name=current_user.full_name,
         role=current_user.role,
         is_active=current_user.is_active,
+        xp=current_user.xp,
     )

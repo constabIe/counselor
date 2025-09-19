@@ -1,0 +1,29 @@
+meta {
+  name: update cv
+  type: http
+  seq: 11
+}
+
+get {
+  url: http://localhost:8000/cv/:ids
+  body: multipartForm
+  auth: inherit
+}
+
+params:path {
+  ids: 30c7d570-7437-49ed-9352-cbd49cb09a31
+}
+
+body:multipart-form {
+  : 
+  file: @file(/Users/tomatocoder/Downloads/IT CV Template.pdf)
+}
+
+body:file {
+  file: @file(/Users/tomatocoder/Downloads/Certificates Diploma.pdf) @contentType(application/pdf)
+  ~file: @file(/Users/tomatocoder/Downloads/IT CV Template.pdf) @contentType(application/pdf)
+}
+
+settings {
+  encodeUrl: true
+}
