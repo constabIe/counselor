@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import './App.css'
 
 const makeEmployeeData = () => ({
@@ -495,12 +495,64 @@ function EmployeeOnboarding({
   )
 }
 
+
 function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
+  const [activeTab, setActiveTab] = React.useState('opportunities')
+  const [editMode, setEditMode] = React.useState(false)
+
+  const [form, setForm] = React.useState({
+    institution: 'Университет Иннополис',
+    educationLevel: 'Высшее',
+    specialty: 'Специальность не указана',
+    graduationYear: '2023',
+    addEduName: '',
+    addEduCompany: '',
+    addEduDate: '',
+    addEduHours: '',
+    currentPosition: 'Руководитель-направления',
+    experienceText: '1 год, 3 месяца',
+    functionalRole: '',
+    teamRole: '',
+    functionDesc: '',
+    extraRole: 'Аналитик',
+    extraRoleSpec: '',
+    languages: 'Русский — родной; Английский — B2',
+    otherSkills: 'Agile, Active Directory',
+    programming: 'Python, JavaScript',
+    prevRole: '',
+    prevCompany: '',
+    prevPeriod: '',
+    prevDuties: '',
+    portfolio: '',
+    about: '',
+    testResults: 'Отсутствуют',
+  })
+
+  const jobs = [
+    { id: 'j1', title: 'Frontend Junior', company: 'TechNova', tags: ['React', 'JS', 'HTML/CSS'] },
+    { id: 'j2', title: 'Data Analyst', company: 'DataWise', tags: ['SQL', 'Python', 'BI'] },
+    { id: 'j3', title: 'QA Engineer', company: 'QualityLab', tags: ['Manual', 'API', 'Postman'] },
+  ]
+
+  const courses = [
+    { id: 'c1', title: 'Алгоритмы и структуры данных', provider: 'Coursera' },
+    { id: 'c2', title: 'React: продвинутые паттерны', provider: 'Udemy' },
+    { id: 'c3', title: 'Data Analysis с Python', provider: 'Stepik' },
+  ]
+
+  const roadmap = [
+    '3 мес: закрепить основы и закрыть пробелы',
+    '6 мес: взять pet‑проект/внутреннюю задачу',
+    '12 мес: мидл‑уровень по целевой роли',
+  ]
+
+  const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
+
   return (
     <div className="employee-dashboard">
       <header className="dashboard-header">
-        <span className="brand">HR-АССИСТЕНТ</span>
-        <button className="icon-button" type="button" onClick={onLogout} aria-label="Выйти из профиля">
+        <span className="brand">HR-Counselor</span>
+        <button className="icon-button" type="button" onClick={onLogout} aria-label="Выйти из аккаунта">
           <LogoutIcon className="icon" />
         </button>
       </header>
@@ -536,15 +588,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
         </div>
       </div>
 
-      <section className="employee-dashboard__grid">
-        {data.history.map((item) => (
-          <article key={item.id} className="info-card">
-            <span className="info-card__label">{item.title}</span>
-            <span className="info-card__value">{item.value}</span>
-          </article>
-        ))}
-      </section>
-
       <section className="cv-card">
         <div>
           <h3>Загруженное CV</h3>
@@ -566,10 +609,153 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
           </button>
         </div>
       </section>
+
+      <nav className="tabs">
+        <button type="button" className={`tabs__btn ${activeTab === 'opportunities' ? 'is-active' : ''}`} onClick={() => setActiveTab('opportunities')}>Карьерные возможности</button>
+        <button type="button" className={`tabs__btn ${activeTab === 'data' ? 'is-active' : ''}`} onClick={() => setActiveTab('data')}>Данные</button>
+        <button type="button" className={`tabs__btn ${activeTab === 'courses' ? 'is-active' : ''}`} onClick={() => setActiveTab('courses')}>Курсы и перспективы</button>
+      </nav>
+
+      {activeTab === 'opportunities' && (
+        <section className="panel">
+          <div className="jobs">
+            {jobs.map((j) => (
+              <article key={j.id} className="job-card">
+                <h4 className="job-card__title">{j.title}</h4>
+                <p className="job-card__company">{j.company}</p>
+                <div className="job-card__tags">
+                  {j.tags.map((t) => (
+                    <span key={t} className="tag">{t}</span>
+                  ))}
+                </div>
+                <button className="btn btn-outline job-card__action" type="button">Откликнуться</button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'data' && (
+        <section className="panel">
+          <div className="panel__header">
+            <h3>Редактируемые данные</h3>
+            <button className="btn btn-ghost btn-small" type="button" onClick={() => setEditMode((v) => !v)}>{editMode ? 'Сохранить' : 'Редактировать'}</button>
+          </div>
+
+          <div className="form-section">
+            <h4>Образование</h4>
+            <div className="form-grid">
+              <EditableField label="Название учебного заведения" value={form.institution} onChange={set('institution')} edit={editMode} />
+              <EditableField label="Уровень образования" value={form.educationLevel} onChange={set('educationLevel')} edit={editMode} />
+              <EditableField label="Специальность" value={form.specialty} onChange={set('specialty')} edit={editMode} />
+              <EditableField label="Год окончания" value={form.graduationYear} onChange={set('graduationYear')} edit={editMode} />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h4>Дополнительное образование</h4>
+            <div className="form-grid">
+              <EditableField label="Название" value={form.addEduName} onChange={set('addEduName')} edit={editMode} />
+              <EditableField label="Компания" value={form.addEduCompany} onChange={set('addEduCompany')} edit={editMode} />
+              <EditableField label="Дата выдачи" value={form.addEduDate} onChange={set('addEduDate')} edit={editMode} />
+              <EditableField label="Кол-во акад. часов" value={form.addEduHours} onChange={set('addEduHours')} edit={editMode} />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h4>Текущие роли</h4>
+            <div className="form-grid">
+              <EditableField label="Должность" value={form.currentPosition} onChange={set('currentPosition')} edit={editMode} />
+              <EditableField label="Опыт работы" value={form.experienceText} onChange={set('experienceText')} edit={editMode} />
+              <EditableField label="Функциональная роль" value={form.functionalRole} onChange={set('functionalRole')} edit={editMode} />
+              <EditableField label="Командная роль" value={form.teamRole} onChange={set('teamRole')} edit={editMode} />
+              <EditableField label="Функционал" value={form.functionDesc} onChange={set('functionDesc')} edit={editMode} multiline />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h4>Дополнительная роль</h4>
+            <div className="form-grid">
+              <EditableField label="Роль" value={form.extraRole} onChange={set('extraRole')} edit={editMode} />
+              <EditableField label="Специализация" value={form.extraRoleSpec} onChange={set('extraRoleSpec')} edit={editMode} />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h4>Знания и навыки</h4>
+            <div className="form-grid">
+              <EditableField label="Иностранные языки" value={form.languages} onChange={set('languages')} edit={editMode} />
+              <EditableField label="Прочие компетенции" value={form.otherSkills} onChange={set('otherSkills')} edit={editMode} />
+              <EditableField label="Языки программирования" value={form.programming} onChange={set('programming')} edit={editMode} />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h4>Предыдущий опыт работы</h4>
+            <div className="form-grid">
+              <EditableField label="Роль/Должность" value={form.prevRole} onChange={set('prevRole')} edit={editMode} />
+              <EditableField label="Место работы" value={form.prevCompany} onChange={set('prevCompany')} edit={editMode} />
+              <EditableField label="Период работы" value={form.prevPeriod} onChange={set('prevPeriod')} edit={editMode} />
+              <EditableField label="Обязанности" value={form.prevDuties} onChange={set('prevDuties')} edit={editMode} multiline />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h4>Дополнительная информация</h4>
+            <div className="form-grid">
+              <EditableField label="Портфолио (ссылки)" value={form.portfolio} onChange={set('portfolio')} edit={editMode} />
+              <EditableField label="О себе" value={form.about} onChange={set('about')} edit={editMode} multiline />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h4>Результаты тестирования</h4>
+            <div className="form-grid">
+              <EditableField label="Технические компетенции" value={form.testResults} onChange={set('testResults')} edit={editMode} />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'courses' && (
+        <section className="panel">
+          <h3>Рекомендуемые курсы</h3>
+          <ul className="list">
+            {courses.map((c) => (
+              <li key={c.id} className="list__item">
+                <span className="list__title">{c.title}</span>
+                <span className="list__meta">{c.provider}</span>
+              </li>
+            ))}
+          </ul>
+          <h3>Роадмап</h3>
+          <ul className="list">
+            {roadmap.map((r, i) => (
+              <li key={i} className="list__item">{r}</li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }
 
+function EditableField({ label, value, onChange, edit, multiline }) {
+  return (
+    <label className="field">
+      <span className="field__label">{label}</span>
+      {edit ? (
+        multiline ? (
+          <textarea className="field__input" rows={4} value={value} onChange={onChange} />
+        ) : (
+          <input className="field__input" type="text" value={value} onChange={onChange} />
+        )
+      ) : (
+        <span className="field__text">{value || '—'}</span>
+      )}
+    </label>
+  )
+}
 function HrDashboard({ onLogout }) {
   const [expandedFolders, setExpandedFolders] = React.useState({})
 
@@ -806,4 +992,5 @@ function PdfIcon({ className }) {
     </svg>
   )
 }
+
 
