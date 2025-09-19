@@ -29,6 +29,11 @@ class CVOut(BaseModel):
     skills: Optional[str] = Field(None, description="Навыки (JSON)")
     experience_years: Optional[int] = Field(None, description="Лет опыта")
     education: Optional[str] = Field(None, description="Образование (JSON)")
+    age: Optional[int] = Field(None, description="Возраст кандидата")
+    jobs: Optional[str] = Field(None, description="Предыдущие работы (JSON)")
+    languages: Optional[str] = Field(None, description="Языки (JSON)")
+    rating: Optional[float] = Field(None, description="Рейтинг от ИИ (0-10)")
+    tags: Optional[str] = Field(None, description="Специальные теги от ИИ (JSON)")
 
 
 class CVAnalysisResult(BaseModel):
@@ -37,4 +42,9 @@ class CVAnalysisResult(BaseModel):
     skills: list[str] = Field(..., description="Список навыков")
     experience_years: int = Field(..., description="Количество лет опыта")
     education: dict = Field(..., description="Информация об образовании")
+    age: Optional[int] = Field(None, description="Возраст кандидата")
+    jobs: list[dict] = Field(default_factory=list, description="Предыдущие работы")
+    languages: list[dict] = Field(default_factory=list, description="Знание языков")
+    rating: float = Field(..., description="Рейтинг кандидата от ИИ (0-10)")
+    tags: list[str] = Field(default_factory=list, description="Специальные теги от ИИ")
     summary: str = Field(..., description="Краткое резюме кандидата")

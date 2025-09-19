@@ -26,6 +26,11 @@ async def create_cv(
     skills: Optional[str] = None,
     experience_years: Optional[int] = None,
     education: Optional[str] = None,
+    age: Optional[int] = None,
+    jobs: Optional[str] = None,
+    languages: Optional[str] = None,
+    rating: Optional[float] = None,
+    tags: Optional[str] = None,
     analysis_status: str = "pending",
 ) -> CV:
     """Создает новую запись CV в базе данных"""
@@ -43,6 +48,11 @@ async def create_cv(
         skills=skills,
         experience_years=experience_years,
         education=education,
+        age=age,
+        jobs=jobs,
+        languages=languages,
+        rating=rating,
+        tags=tags,
         analysis_status=analysis_status,
     )
     
@@ -158,6 +168,11 @@ async def update_cv_analysis(
     skills: Optional[str] = None,
     experience_years: Optional[int] = None,
     education: Optional[str] = None,
+    age: Optional[int] = None,
+    jobs: Optional[str] = None,
+    languages: Optional[str] = None,
+    rating: Optional[float] = None,
+    tags: Optional[str] = None,
     analysis_status: str = "completed",
 ) -> Optional[CV]:
     """Обновляет результаты анализа CV"""
@@ -180,6 +195,16 @@ async def update_cv_analysis(
         cv.experience_years = experience_years
     if education is not None:
         cv.education = education
+    if age is not None:
+        cv.age = age
+    if jobs is not None:
+        cv.jobs = jobs
+    if languages is not None:
+        cv.languages = languages
+    if rating is not None:
+        cv.rating = rating
+    if tags is not None:
+        cv.tags = tags
     
     session.add(cv)
     await session.commit()

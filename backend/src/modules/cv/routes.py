@@ -121,6 +121,47 @@ async def get_my_cvs(
             skills=cv.skills,
             experience_years=cv.experience_years,
             education=cv.education,
+            age=cv.age,
+            jobs=cv.jobs,
+            languages=cv.languages,
+            rating=cv.rating,
+            tags=cv.tags,
+        )
+        for cv in cvs
+    ]
+
+
+@router.get(
+    "/deleted",
+    response_model=List[CVOut],
+    summary="Удаленные CV",
+    description="Получает список всех удаленных (неактивных) CV текущего пользователя"
+)
+async def get_deleted_cvs(
+    current_user: CurrentUserDep,
+    session: DbSessionDep,
+) -> List[CVOut]:
+    """Получает все удаленные CV текущего пользователя"""
+    
+    cvs = await cv_repo.get_user_deleted_cvs(session, current_user.id)
+    
+    return [
+        CVOut(
+            id=cv.id,
+            user_id=cv.user_id,
+            filename=cv.filename,
+            original_filename=cv.original_filename,
+            file_size=cv.file_size,
+            uploaded_at=cv.uploaded_at,
+            analysis_status=cv.analysis_status,
+            skills=cv.skills,
+            experience_years=cv.experience_years,
+            education=cv.education,
+            age=cv.age,
+            jobs=cv.jobs,
+            languages=cv.languages,
+            rating=cv.rating,
+            tags=cv.tags,
         )
         for cv in cvs
     ]
@@ -165,6 +206,11 @@ async def get_cv(
         skills=cv.skills,
         experience_years=cv.experience_years,
         education=cv.education,
+        age=cv.age,
+        jobs=cv.jobs,
+        languages=cv.languages,
+        rating=cv.rating,
+        tags=cv.tags,
     )
 
 
@@ -290,36 +336,9 @@ async def restore_cv(
         skills=restored_cv.skills,
         experience_years=restored_cv.experience_years,
         education=restored_cv.education,
+        age=restored_cv.age,
+        jobs=restored_cv.jobs,
+        languages=restored_cv.languages,
+        rating=restored_cv.rating,
+        tags=restored_cv.tags,
     )
-
-
-@router.get(
-    "/deleted",
-    response_model=List[CVOut],
-    summary="Удаленные CV",
-    description="Получает список всех удаленных (неактивных) CV текущего пользователя"
-)
-async def get_deleted_cvs(
-    current_user: CurrentUserDep,
-    session: DbSessionDep,
-) -> List[CVOut]:
-    """Получает все удаленные CV текущего пользователя"""
-    
-    print("SDSS", current_user.id)
-    cvs = await cv_repo.get_user_deleted_cvs(session, current_user.id)
-    
-    return [
-        CVOut(
-            id=cv.id,
-            user_id=cv.user_id,
-            filename=cv.filename,
-            original_filename=cv.original_filename,
-            file_size=cv.file_size,
-            uploaded_at=cv.uploaded_at,
-            analysis_status=cv.analysis_status,
-            skills=cv.skills,
-            experience_years=cv.experience_years,
-            education=cv.education,
-        )
-        for cv in cvs
-    ]
