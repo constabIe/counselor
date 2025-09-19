@@ -135,8 +135,22 @@ export default function App() {
     if (token) {
       api.getUserProfile(token)
         .then(data => {
-          setUserData(data);
-          if (data.role.toLowerCase() === 'hr') {
+          // map backend profile to the shape EmployeeDashboard expects
+          const mapped = {
+            fullName: data.full_name || data.fullName || data.name || data.email || 'Пользователь',
+            rating: (data.rating !== undefined && data.rating !== null) ? data.rating : 0,
+            xp: (data.xp !== undefined && data.xp !== null) ? data.xp : 0,
+            badges: Array.isArray(data.badges) ? data.badges : [],
+            cvFileName: data.cv_file_name || data.cvFileName || data.cv || '',
+            uploadedAt: data.uploaded_at || data.uploadedAt || '',
+            // keep raw profile in case other components need it
+            __raw: data,
+          };
+
+          setUserData(mapped);
+
+          const role = (data.role || data.user_role || '').toString().toLowerCase();
+          if (role === 'hr') {
             setView('hrDashboard');
           } else {
             setView('employeeDashboard');
@@ -222,7 +236,7 @@ export default function App() {
 
       {view === 'employeeDashboard' && (
         <EmployeeDashboard
-          data={employeeData}
+          data={userData || employeeData}
           onLogout={goLanding}
           onReupload={() => {
             setOnboardingSlide(2)
