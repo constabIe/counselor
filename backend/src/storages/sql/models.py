@@ -34,6 +34,7 @@ class User(Base, table=True):
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
+    xp: int = Field(default=0)
 
 
 class RefreshToken(Base, table=True):
@@ -65,9 +66,37 @@ class CV(Base, table=True):
     skills: Optional[str] = Field(default=None, description="Навыки в JSON формате")
     experience_years: Optional[int] = Field(default=None, description="Количество лет опыта")
     education: Optional[str] = Field(default=None, description="Образование в JSON формате")
-    age: Optional[int] = Field(default=None, description="Возраст кандидата")
+    additional_education: Optional[str] = Field(default=None, description="Курсы и сертификаты в JSON формате")
     jobs: Optional[str] = Field(default=None, description="Предыдущие работы в JSON формате")
+    current_role: Optional[str] = Field(default=None, description="Текущая роль/должность в JSON формате")
+    responsibilities: Optional[str] = Field(default=None, description="Обязанности в текущей роли в JSON формате")
     languages: Optional[str] = Field(default=None, description="Языки в JSON формате")
+    age: Optional[int] = Field(default=None, description="Возраст кандидата")
+    department: Optional[str] = Field(default=None, description="Подразделение/направление")
+    grade: Optional[str] = Field(default=None, description="Грейд (если есть)")
+    specialization: Optional[str] = Field(default=None, description="Специализация (например, L1 Support)")
+    competencies: Optional[str] = Field(default=None, description="Компетенции с уровнями в JSON формате")
+    comments: Optional[str] = Field(default=None, description="Дополнительное описание (свободный текст)")
     rating: Optional[float] = Field(default=None, description="Рейтинг кандидата от ИИ (0-10)")
     tags: Optional[str] = Field(default=None, description="Специальные теги от ИИ в JSON формате")
+    career_path: Optional[str] = Field(default=None, description="Предлагаемая карьерная траектория в JSON формате")
     analysis_status: str = Field(default="pending", description="Статус анализа: pending, processing, completed, failed")
+
+
+class CourseLevel(StrEnum):
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+
+
+class Course(Base, table=True):
+    __tablename__ = "courses"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    title: str = Field(max_length=255, description="Название курса")
+    direction: str = Field(max_length=255, description="Направление (например, 'IT', 'HR', 'Marketing')")
+    level: CourseLevel = Field(description="Уровень сложности курса")
+    duration_hours: int = Field(description="Длительность курса в часах")
+    description: Optional[str] = Field(default=None, description="Описание курса")
+    created_at: datetime = Field(default_factory=utcnow)
+    is_active: bool = Field(default=True)

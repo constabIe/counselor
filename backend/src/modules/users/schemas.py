@@ -25,6 +25,7 @@ class UserOut(BaseModel):
     full_name: str = Field(..., description="Полное имя")
     role: UserRole = Field(..., description="Роль пользователя")
     is_active: bool = Field(..., description="Активен ли пользователь")
+    xp: int = Field(..., description="Количество XP пользователя")
 
 
 class TokenResponse(BaseModel):
