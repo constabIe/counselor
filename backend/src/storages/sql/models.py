@@ -158,3 +158,28 @@ class Job(Base, table=True):
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
     published_at: Optional[datetime] = Field(default=None, description="Дата публикации")
+
+
+class Folder(Base, table=True):
+    __tablename__ = "folders"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    name: str = Field(max_length=255, description="Название папки")
+    description: Optional[str] = Field(default=None, description="Описание папки")
+    job_id: uuid.UUID = Field(foreign_key="jobs.id", description="ID вакансии, к которой относится папка")
+    created_by: uuid.UUID = Field(foreign_key="users.id", description="Кто создал папку")
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+    is_active: bool = Field(default=True, description="Активна ли папка")
+
+
+class FolderCandidate(Base, table=True):
+    __tablename__ = "folder_candidates"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    folder_id: uuid.UUID = Field(foreign_key="folders.id", description="ID папки")
+    user_id: uuid.UUID = Field(foreign_key="users.id", description="ID кандидата (пользователя)")
+    added_by: uuid.UUID = Field(foreign_key="users.id", description="Кто добавил кандидата в папку")
+    added_at: datetime = Field(default_factory=utcnow)
+    notes: Optional[str] = Field(default=None, description="Заметки о кандидате")
+    is_active: bool = Field(default=True, description="Активна ли запись")
