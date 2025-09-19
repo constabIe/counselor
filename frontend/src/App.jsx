@@ -637,83 +637,70 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
 
       {activeTab === 'data' && (
         <section className="panel">
-          <div className="panel__header">
-            <h3>Редактируемые данные</h3>
-            <button className="btn btn-ghost btn-small" type="button" onClick={() => setEditMode((v) => !v)}>{editMode ? 'Сохранить' : 'Редактировать'}</button>
-          </div>
-
-          <div className="form-section">
-            <h4>Образование</h4>
+          <SubCard title="Образование" render={(edit) => (
             <div className="form-grid">
-              <EditableField label="Название учебного заведения" value={form.institution} onChange={set('institution')} edit={editMode} />
-              <EditableField label="Уровень образования" value={form.educationLevel} onChange={set('educationLevel')} edit={editMode} />
-              <EditableField label="Специальность" value={form.specialty} onChange={set('specialty')} edit={editMode} />
-              <EditableField label="Год окончания" value={form.graduationYear} onChange={set('graduationYear')} edit={editMode} />
+              <EditableField label="Название учебного заведения" value={form.institution} onChange={set('institution')} edit={edit} />
+              <EditableField label="Уровень образования" value={form.educationLevel} onChange={set('educationLevel')} edit={edit} />
+              <EditableField label="Специальность" value={form.specialty} onChange={set('specialty')} edit={edit} />
+              <EditableField label="Год окончания" value={form.graduationYear} onChange={set('graduationYear')} edit={edit} />
             </div>
-          </div>
+          )} />
 
-          <div className="form-section">
-            <h4>Дополнительное образование</h4>
+          <SubCard title="Дополнительное образование" render={(edit) => (
             <div className="form-grid">
-              <EditableField label="Название" value={form.addEduName} onChange={set('addEduName')} edit={editMode} />
-              <EditableField label="Компания" value={form.addEduCompany} onChange={set('addEduCompany')} edit={editMode} />
-              <EditableField label="Дата выдачи" value={form.addEduDate} onChange={set('addEduDate')} edit={editMode} />
-              <EditableField label="Кол-во акад. часов" value={form.addEduHours} onChange={set('addEduHours')} edit={editMode} />
+              <EditableField label="Название" value={form.addEduName} onChange={set('addEduName')} edit={edit} />
+              <EditableField label="Компания" value={form.addEduCompany} onChange={set('addEduCompany')} edit={edit} />
+              <EditableField label="Дата выдачи" value={form.addEduDate} onChange={set('addEduDate')} edit={edit} />
+              <EditableField label="Кол-во акад. часов" value={form.addEduHours} onChange={set('addEduHours')} edit={edit} />
             </div>
-          </div>
+          )} />
 
-          <div className="form-section">
-            <h4>Текущие роли</h4>
+          <SubCard title="Текущие роли" render={(edit) => (
             <div className="form-grid">
-              <EditableField label="Должность" value={form.currentPosition} onChange={set('currentPosition')} edit={editMode} />
-              <EditableField label="Опыт работы" value={form.experienceText} onChange={set('experienceText')} edit={editMode} />
-              <EditableField label="Функциональная роль" value={form.functionalRole} onChange={set('functionalRole')} edit={editMode} />
-              <EditableField label="Командная роль" value={form.teamRole} onChange={set('teamRole')} edit={editMode} />
-              <EditableField label="Функционал" value={form.functionDesc} onChange={set('functionDesc')} edit={editMode} multiline />
+              <EditableField label="Должность" value={form.currentPosition} onChange={set('currentPosition')} edit={edit} />
+              <EditableField label="Опыт работы" value={form.experienceText} onChange={set('experienceText')} edit={edit} />
+              <EditableField label="Функциональная роль" value={form.functionalRole} onChange={set('functionalRole')} edit={edit} />
+              <EditableField label="Командная роль" value={form.teamRole} onChange={set('teamRole')} edit={edit} />
+              <EditableField label="Функционал" value={form.functionDesc} onChange={set('functionDesc')} edit={edit} multiline />
             </div>
-          </div>
+          )} />
 
-          <div className="form-section">
-            <h4>Дополнительная роль</h4>
+          <SubCard title="Дополнительная роль" render={(edit) => (
             <div className="form-grid">
-              <EditableField label="Роль" value={form.extraRole} onChange={set('extraRole')} edit={editMode} />
-              <EditableField label="Специализация" value={form.extraRoleSpec} onChange={set('extraRoleSpec')} edit={editMode} />
+              <EditableField label="Роль" value={form.extraRole} onChange={set('extraRole')} edit={edit} />
+              <EditableField label="Специализация" value={form.extraRoleSpec} onChange={set('extraRoleSpec')} edit={edit} />
             </div>
-          </div>
+          )} />
 
-          <div className="form-section">
-            <h4>Знания и навыки</h4>
+          <SubCard title="Знания и навыки" render={(edit) => (
             <div className="form-grid">
-              <EditableField label="Иностранные языки" value={form.languages} onChange={set('languages')} edit={editMode} />
-              <EditableField label="Прочие компетенции" value={form.otherSkills} onChange={set('otherSkills')} edit={editMode} />
-              <EditableField label="Языки программирования" value={form.programming} onChange={set('programming')} edit={editMode} />
+              <EditableField label="Иностранные языки" value={form.languages} onChange={set('languages')} edit={edit} />
+              <EditableField label="Прочие компетенции" value={form.otherSkills} onChange={set('otherSkills')} edit={edit} />
+              <EditableField label="Языки программирования" value={form.programming} onChange={set('programming')} edit={edit} />
             </div>
-          </div>
+          )} />
 
-          <div className="form-section">
-            <h4>Предыдущий опыт работы</h4>
+          <SubCard title="Предыдущий опыт работы" render={(edit) => (
             <div className="form-grid">
-              <EditableField label="Роль/Должность" value={form.prevRole} onChange={set('prevRole')} edit={editMode} />
-              <EditableField label="Место работы" value={form.prevCompany} onChange={set('prevCompany')} edit={editMode} />
-              <EditableField label="Период работы" value={form.prevPeriod} onChange={set('prevPeriod')} edit={editMode} />
-              <EditableField label="Обязанности" value={form.prevDuties} onChange={set('prevDuties')} edit={editMode} multiline />
+              <EditableField label="Роль/Должность" value={form.prevRole} onChange={set('prevRole')} edit={edit} />
+              <EditableField label="Место работы" value={form.prevCompany} onChange={set('prevCompany')} edit={edit} />
+              <EditableField label="Период работы" value={form.prevPeriod} onChange={set('prevPeriod')} edit={edit} />
+              <EditableField label="Обязанности" value={form.prevDuties} onChange={set('prevDuties')} edit={edit} multiline />
             </div>
-          </div>
+          )} />
 
-          <div className="form-section">
-            <h4>Дополнительная информация</h4>
+          <SubCard title="Дополнительная информация" render={(edit) => (
             <div className="form-grid">
-              <EditableField label="Портфолио (ссылки)" value={form.portfolio} onChange={set('portfolio')} edit={editMode} />
-              <EditableField label="О себе" value={form.about} onChange={set('about')} edit={editMode} multiline />
+              <EditableField label="Портфолио (ссылки)" value={form.portfolio} onChange={set('portfolio')} edit={edit} />
+              <EditableField label="О себе" value={form.about} onChange={set('about')} edit={edit} multiline />
             </div>
-          </div>
+          )} />
 
-          <div className="form-section">
-            <h4>Результаты тестирования</h4>
+          <SubCard title="Результаты тестирования" render={(edit) => (
             <div className="form-grid">
-              <EditableField label="Технические компетенции" value={form.testResults} onChange={set('testResults')} edit={editMode} />
+              <EditableField label="Технические компетенции" value={form.testResults} onChange={set('testResults')} edit={edit} />
             </div>
-          </div>
+          )} />
         </section>
       )}
 
@@ -756,74 +743,227 @@ function EditableField({ label, value, onChange, edit, multiline }) {
     </label>
   )
 }
+
 function HrDashboard({ onLogout }) {
+  const hrName = 'Садыков Хасан Альбертович'
+  const [activeTab, setActiveTab] = React.useState('search')
   const [expandedFolders, setExpandedFolders] = React.useState({})
 
-  const toggleFolder = (folderId) => {
-    setExpandedFolders((prev) => ({
-      ...prev,
-      [folderId]: !prev[folderId],
-    }))
+  const [filters, setFilters] = React.useState({
+    ageMin: 21,
+    ageMax: 45,
+    gender: '',
+    expMin: 0,
+    expMax: 10,
+    languages: '',
+    education: '',
+    specialty: '',
+    format: '',
+    uploaded: '',
+    ratingMin: 0,
+  })
+
+  const [messages, setMessages] = React.useState([
+    { from: 'bot', text: 'Привет! Опишите кандидата или выберите фильтры слева.' },
+  ])
+  const [chatInput, setChatInput] = React.useState('')
+  const [showCvModal, setShowCvModal] = React.useState(false)
+
+  const allCvs = React.useMemo(
+    () => hrFolders.flatMap((f) => (f.files || []).map((file) => ({ ...file, folder: f.name }))),
+    []
+  )
+
+  const sendQuery = () => {
+    const text = chatInput.trim()
+    if (!text) return
+    setMessages((prev) => [...prev, { from: 'user', text }])
+    setChatInput('')
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        { from: 'bot', text: 'Нашлось несколько подходящих резюме. Открыть список?', action: 'open' },
+      ])
+    }, 200)
   }
+
+  const onBotAction = (msg) => {
+    if (msg.action === 'open') setShowCvModal(true)
+  }
+
+  const update = (key) => (e) => setFilters((p) => ({ ...p, [key]: e.target.value }))
+  const toggleFolder = (id) => setExpandedFolders((p) => ({ ...p, [id]: !p[id] }))
 
   return (
     <div className="hr-dashboard">
       <header className="dashboard-header">
-        <span className="brand">HR-АССИСТЕНТ</span>
-        <button className="btn btn-ghost btn-small" type="button" onClick={onLogout}>
-          ← Выйти
-        </button>
+        <span className="brand">HR-Counselor</span>
+        <button className="btn btn-ghost btn-small" type="button" onClick={onLogout}>Выйти</button>
       </header>
 
-      <div className="hr-dashboard__intro">
-        <h1>Папки с CV кандидатов</h1>
-        <p>Доступны подборки резюме по направлениям. Открывайте папку, чтобы просмотреть список кандидатов.</p>
+      <div className="employee-dashboard__top">
+        <div className="profile-card">
+          <div className="profile-card__avatar">{hrName.slice(0, 1)}</div>
+          <div>
+            <h2 className="profile-card__name">{hrName}</h2>
+            <div className="profile-card__metrics">
+              <div className="profile-card__metric">
+                <span className="profile-card__metric-label">Роль:</span>
+                <span className="profile-card__metric-value">HR</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="hr-dashboard__grid">
-        {hrFolders.map((folder) => {
-          const isOpen = Boolean(expandedFolders[folder.id])
+      <nav className="tabs">
+        <button type="button" className={`tabs__btn ${activeTab === 'search' ? 'is-active' : ''}`} onClick={() => setActiveTab('search')}>Поиск сотрудников</button>
+        <button type="button" className={`tabs__btn ${activeTab === 'vacancies' ? 'is-active' : ''}`} onClick={() => setActiveTab('vacancies')}>Вакансии компании</button>
+        <button type="button" className={`tabs__btn ${activeTab === 'folders' ? 'is-active' : ''}`} onClick={() => setActiveTab('folders')}>Папки с CV</button>
+      </nav>
 
-          return (
-            <article key={folder.id} className="folder-card" style={{ '--accent': folder.accent }}>
-              <div className="folder-card__icon">
-                <FolderIcon className="icon" />
-              </div>
-              <div className="folder-card__body">
-                <h2>{folder.name}</h2>
-                <p>{folder.count} CV</p>
-                <span>Обновлено {folder.updated}</span>
-              </div>
-              <button
-                className="folder-card__action"
-                type="button"
-                onClick={() => toggleFolder(folder.id)}
-                aria-expanded={isOpen}
-              >
-                {isOpen ? 'Скрыть список' : 'Открыть папку'}
-              </button>
+      {activeTab === 'search' && (
+        <section className="panel split">
+          <aside className="filters">
+            <h3>Базовые фильтры</h3>
+            <div className="form-grid">
+              <label className="field"><span className="field__label">Возраст, от</span><input className="field__input" type="number" value={filters.ageMin} onChange={update('ageMin')} /></label>
+              <label className="field"><span className="field__label">Возраст, до</span><input className="field__input" type="number" value={filters.ageMax} onChange={update('ageMax')} /></label>
+              <label className="field"><span className="field__label">Пол</span><input className="field__input" type="text" placeholder="опционально" value={filters.gender} onChange={update('gender')} /></label>
+              <label className="field"><span className="field__label">Опыт, от (лет)</span><input className="field__input" type="number" value={filters.expMin} onChange={update('expMin')} /></label>
+              <label className="field"><span className="field__label">Опыт, до (лет)</span><input className="field__input" type="number" value={filters.expMax} onChange={update('expMax')} /></label>
+              <label className="field"><span className="field__label">Языки</span><input className="field__input" type="text" placeholder="English B2+, ..." value={filters.languages} onChange={update('languages')} /></label>
+              <label className="field"><span className="field__label">Образование</span><input className="field__input" type="text" placeholder="бакалавр/магистр/PhD" value={filters.education} onChange={update('education')} /></label>
+              <label className="field"><span className="field__label">Специальность</span><input className="field__input" type="text" value={filters.specialty} onChange={update('specialty')} /></label>
+              <label className="field"><span className="field__label">Формат работы</span><input className="field__input" type="text" placeholder="офис/гибрид/удалёнка" value={filters.format} onChange={update('format')} /></label>
+              <label className="field"><span className="field__label">Дата загрузки</span><input className="field__input" type="date" value={filters.uploaded} onChange={update('uploaded')} /></label>
+              <label className="field"><span className="field__label">Мин. рейтинг</span><input className="field__input" type="number" value={filters.ratingMin} onChange={update('ratingMin')} /></label>
+            </div>
+          </aside>
 
-              {isOpen && (
-                <ul className="folder-card__list">
-                  {folder.files.map((file) => (
-                    <li key={file.id} className="folder-card__item">
-                      <div className="folder-card__file">
-                        <span className="folder-card__file-icon">
-                          <PdfIcon className="icon icon--small" />
-                        </span>
-                        <div className="folder-card__file-info">
-                          <p className="folder-card__file-name">{file.name}</p>
-                          <span className="folder-card__file-meta">Загружено {file.uploaded}</span>
-                        </div>
-                      </div>
-                      <span className="folder-card__badge">PDF</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
-          )
-        })}
+          <section className="chat">
+            <div className="chat__messages">
+              {messages.map((m, i) => (
+                <div key={i} className={`msg ${m.from === 'bot' ? 'msg--bot' : 'msg--user'}`} onClick={() => onBotAction(m)}>
+                  {m.text}
+                </div>
+              ))}
+            </div>
+            <div className="chat__input">
+              <input className="field__input" type="text" placeholder="Опишите требования..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendQuery()} />
+              <button className="btn btn-green" type="button" onClick={sendQuery}>Отправить</button>
+            </div>
+          </section>
+        </section>
+      )}
+
+      {activeTab === 'vacancies' && <VacanciesTab />}
+
+      {activeTab === 'folders' && (
+        <section className="panel">
+          <div className="hr-dashboard__grid">
+            {hrFolders.map((folder) => {
+              const isOpen = Boolean(expandedFolders[folder.id])
+              return (
+                <article key={folder.id} className="folder-card" style={{ '--accent': folder.accent }}>
+                  <div className="folder-card__icon"><FolderIcon className="icon" /></div>
+                  <div className="folder-card__body">
+                    <h2>{folder.name}</h2>
+                    <p>{folder.count} CV</p>
+                    <span>Обновлено {folder.updated}</span>
+                  </div>
+                  <button className="folder-card__action" type="button" onClick={() => toggleFolder(folder.id)} aria-expanded={isOpen}>
+                    {isOpen ? 'Скрыть список' : 'Показать список'}
+                  </button>
+                  {isOpen && (
+                    <ul className="folder-card__list">
+                      {folder.files.map((file) => (
+                        <li key={file.id} className="folder-card__item">
+                          <div className="folder-card__file">
+                            <span className="folder-card__file-icon"><PdfIcon className="icon icon--small" /></span>
+                            <div className="folder-card__file-info">
+                              <p className="folder-card__file-name">{file.name}</p>
+                              <span className="folder-card__file-meta">Загружено {file.uploaded}</span>
+                            </div>
+                          </div>
+                          <span className="folder-card__badge">PDF</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {showCvModal && (
+        <CvResultsModal list={allCvs} onClose={() => setShowCvModal(false)} />
+      )}
+    </div>
+  )
+}
+
+function VacanciesTab() {
+  const [vacancies, setVacancies] = React.useState([{ id: 'v1', title: 'Frontend Junior', location: 'Казань', format: 'гибрид' }])
+  const [title, setTitle] = React.useState('')
+  const [location, setLocation] = React.useState('')
+  const [format, setFormat] = React.useState('')
+  const add = () => {
+    if (!title.trim()) return
+    setVacancies((prev) => [...prev, { id: String(Date.now()), title, location, format }])
+    setTitle(''); setLocation(''); setFormat('')
+  }
+  return (
+    <section className="panel">
+      <div className="panel__header"><h3>Свободные вакансии</h3></div>
+      <div className="form-grid">
+        <label className="field"><span className="field__label">Название</span><input className="field__input" value={title} onChange={(e) => setTitle(e.target.value)} /></label>
+        <label className="field"><span className="field__label">Локация</span><input className="field__input" value={location} onChange={(e) => setLocation(e.target.value)} /></label>
+        <label className="field"><span className="field__label">Формат</span><input className="field__input" placeholder="офис/гибрид/удалёнка" value={format} onChange={(e) => setFormat(e.target.value)} /></label>
+        <div><button className="btn btn-purple" type="button" onClick={add}>Добавить</button></div>
+      </div>
+      <div className="jobs" style={{ marginTop: 16 }}>
+        {vacancies.map((v) => (
+          <article key={v.id} className="job-card">
+            <h4 className="job-card__title">{v.title}</h4>
+            <p className="job-card__company">{(v.location || '-') + ' - ' + (v.format || '-')}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function CvResultsModal({ list, onClose }) {
+  const [folderName, setFolderName] = React.useState('')
+  const [selected, setSelected] = React.useState(null)
+  const addToFolder = () => { onClose() }
+  return (
+    <div className="modal" role="dialog" aria-modal="true">
+      <div className="modal__backdrop" onClick={onClose} />
+      <div className="modal__dialog" role="document">
+        <header className="modal__header">
+          <h2>Подходящие резюме</h2>
+          <button className="icon-button icon-button--ghost modal__close" type="button" onClick={onClose}>
+            <CloseIcon className="icon icon--small" />
+          </button>
+        </header>
+        <div className="modal__content" style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 16 }}>
+          <ul className="list" style={{ maxHeight: 360, overflow: 'auto' }}>
+            {list.map((cv) => (
+              <li key={cv.id} className="list__item" onClick={() => setSelected(cv)} style={{ cursor: 'pointer' }}>
+                <span className="list__title">{cv.name}</span>
+                <span className="list__meta">{cv.folder + ' - ' + cv.uploaded}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="form-grid">
+            <label className="field"><span className="field__label">Папка</span><input className="field__input" placeholder="Новая или существующая" value={folderName} onChange={(e) => setFolderName(e.target.value)} /></label>
+            <button className="btn btn-purple" type="button" disabled={!selected || !folderName} onClick={addToFolder}>Добавить выбранное</button>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -994,3 +1134,18 @@ function PdfIcon({ className }) {
 }
 
 
+
+function SubCard({ title, render }) {
+  const [edit, setEdit] = React.useState(false)
+  return (
+    <div className="subcard">
+      <div className="subcard__header">
+        <h4 className="subcard__title">{title}</h4>
+        <button className="btn btn-ghost btn-small" type="button" onClick={() => setEdit((v) => !v)}>
+          {edit ? 'Сохранить' : 'Редактировать'}
+        </button>
+      </div>
+      <div className="subcard__body">{render(edit)}</div>
+    </div>
+  )
+}
