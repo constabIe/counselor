@@ -66,7 +66,7 @@ async def get_user_enrollments(
     
     stmt = (
         select(CourseEnrollment, Course)
-        .join(Course, CourseEnrollment.course_id == Course.id)
+        .join(Course, CourseEnrollment.course_id == Course.id) # type: ignore
         .where(
             CourseEnrollment.user_id == user_id,
             CourseEnrollment.is_active == True,
