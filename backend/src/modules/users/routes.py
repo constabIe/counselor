@@ -44,6 +44,7 @@ async def register(
             email=data.email,
             password=data.password,
             full_name=data.full_name,
+            role=data.role,
         )
         
         # Создаем токен

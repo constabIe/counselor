@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from src.storages.sql.models import User
+from src.storages.sql.models import User, UserRole
 from src.utils.security import hash_password
 
 
@@ -16,6 +16,7 @@ async def create_user(
     email: str,
     password: str,
     full_name: str,
+    role: UserRole = UserRole.USER,
 ) -> User:
     """Создает нового пользователя"""
     password_hash = hash_password(password)
@@ -24,6 +25,7 @@ async def create_user(
         email=email,
         password_hash=password_hash,
         full_name=full_name,
+        role=role,
     )
     
     session.add(user)

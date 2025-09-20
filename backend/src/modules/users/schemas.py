@@ -12,6 +12,7 @@ class UserRegisterIn(BaseModel):
     email: EmailStr = Field(..., description="Email пользователя")
     password: str = Field(..., min_length=6, description="Пароль (минимум 6 символов)")
     full_name: str = Field(..., min_length=2, max_length=255, description="Полное имя")
+    role: UserRole = Field(default=UserRole.USER, description="Роль пользователя")
 
 
 class UserLoginIn(BaseModel):
