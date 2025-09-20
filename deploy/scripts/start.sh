@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-echo "Waiting for PostgreSQL..."
-until pg_isready -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do
-  sleep 2
-done
+# echo "Waiting for PostgreSQL..."
+# until pg_isready -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do
+#   sleep 2
+# done
 
 echo "Alembic migrations..."
 uv run alembic upgrade head
