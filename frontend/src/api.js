@@ -144,5 +144,20 @@ export const api = {
       await parseError(response);
     }
     return response.json();
+  },
+
+  async updateCv(token, cvId, data) {
+    const response = await fetch(`${API_URL}/cv/${cvId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
   }
 };

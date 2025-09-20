@@ -988,6 +988,11 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
   const [userProfile, setUserProfile] = React.useState(null)
   const [isLoadingProfile, setIsLoadingProfile] = React.useState(true)
   
+  // Состояния для редактирования CV данных
+  const [editedCvData, setEditedCvData] = React.useState({})
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [saveMessage, setSaveMessage] = React.useState('')
+  
   // Состояния для личного помощника
   const [assistantMessages, setAssistantMessages] = React.useState([
     { from: 'bot', text: 'Привет! Я ваш личный помощник. Помогу с карьерными вопросами, анализом резюме и планированием развития. Что вас интересует?' }
@@ -1033,6 +1038,62 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
     } finally {
       setIsLoadingProfile(false);
     }
+  };
+
+  // Функции для редактирования CV
+  const handleFieldChange = (field, value) => {
+    setEditedCvData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const saveChanges = async () => {
+    if (!currentCv || Object.keys(editedCvData).length === 0) {
+      setSaveMessage('Нет изменений для сохранения');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setSaveMessage('');
+      
+      await api.updateCv(token, currentCv.id, editedCvData);
+      
+      // Обновляем локальное состояние
+      setCurrentCv(prev => ({
+        ...prev,
+        ...editedCvData
+      }));
+      
+      // Очищаем изменения
+      setEditedCvData({});
+      setEditMode(false);
+      setSaveMessage('Данные успешно сохранены!');
+      
+      // Убираем сообщение через 3 секунды
+      setTimeout(() => setSaveMessage(''), 3000);
+      
+    } catch (error) {
+      console.error('Ошибка сохранения данных:', error);
+      setSaveMessage(error.message || 'Ошибка при сохранении данных');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditMode(false);
+    setEditedCvData({});
+    setSaveMessage('');
+  };
+
+  // Функция для получения значения поля (с учетом редактирования)
+  const getFieldValue = (field, defaultValue = 'Не указано') => {
+    if (editedCvData.hasOwnProperty(field)) {
+      return editedCvData[field];
+    }
+    return getCvValue(field, defaultValue);
   };
 
   // Функция для безопасного парсинга JSON полей
@@ -1294,9 +1355,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
           <button className="btn btn-green" type="button" onClick={onReupload} disabled={isLoadingCv}>
             {currentCv ? 'Управление CV' : 'Загрузить CV'}
           </button>
-          <button className="btn btn-purple" type="button" onClick={onOpenTasks}>
-            Посмотреть задачи
-          </button>
         </div>
       </section>
 
@@ -1393,56 +1451,196 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
             </div>
           ) : (
             <>
-              <SubCard title="Личная информация" render={(edit) => (
+              <div className="data-section-header">
+                <h3>Данные CV</h3>
+                <div className="data-section-actions">
+                  {!editMode ? (
+                    <button 
+                      className="btn btn-purple" 
+                      type="button" 
+                      onClick={() => setEditMode(true)}
+                    >
+                      Редактировать
+                    </button>
+                  ) : (
+                    <div className="edit-actions">
+                      <button 
+                        className="btn btn-green" 
+                        type="button" 
+                        onClick={saveChanges}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? 'Сохранение...' : 'Сохранить'}
+                      </button>
+                      <button 
+                        className="btn btn-ghost" 
+                        type="button" 
+                        onClick={cancelEdit}
+                        disabled={isSaving}
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {saveMessage && (
+                <div className={`save-message ${saveMessage.includes('успешно') ? 'save-message--success' : 'save-message--error'}`}>
+                  {saveMessage}
+                </div>
+              )}
+
+              <SubCard title="Личная информация" render={() => (
                 <div className="form-grid">
-                  <EditableField label="Возраст" value={getCvValue('age', 'Не указан')} onChange={() => {}} edit={false} />
-                  <EditableField label="Опыт работы" value={getCvValue('experience_years') ? `${getCvValue('experience_years')} лет` : 'Не указан'} onChange={() => {}} edit={false} />
-                  <EditableField label="Подразделение" value={getCvValue('department')} onChange={() => {}} edit={false} />
-                  <EditableField label="Грейд" value={getCvValue('grade')} onChange={() => {}} edit={false} />
-                  <EditableField label="Специализация" value={getCvValue('specialization')} onChange={() => {}} edit={false} />
+                  <EditableField 
+                    label="Возраст" 
+                    value={getFieldValue('age', 'Не указан')} 
+                    onChange={(e) => handleFieldChange('age', e.target.value)} 
+                    edit={editMode} 
+                  />
+                  <EditableField 
+                    label="Опыт работы (лет)" 
+                    value={getFieldValue('experience_years', '')} 
+                    onChange={(e) => handleFieldChange('experience_years', e.target.value)} 
+                    edit={editMode} 
+                  />
+                  <EditableField 
+                    label="Подразделение" 
+                    value={getFieldValue('department')} 
+                    onChange={(e) => handleFieldChange('department', e.target.value)} 
+                    edit={editMode} 
+                  />
+                  <EditableField 
+                    label="Грейд" 
+                    value={getFieldValue('grade')} 
+                    onChange={(e) => handleFieldChange('grade', e.target.value)} 
+                    edit={editMode} 
+                  />
+                  <EditableField 
+                    label="Специализация" 
+                    value={getFieldValue('specialization')} 
+                    onChange={(e) => handleFieldChange('specialization', e.target.value)} 
+                    edit={editMode} 
+                  />
                 </div>
               )} />
 
-              <SubCard title="Образование" render={(edit) => (
+              <SubCard title="Образование" render={() => (
                 <div className="form-grid">
-                  <EditableField label="Образование" value={parseJsonField('education')} onChange={() => {}} edit={false} />
-                  <EditableField label="Дополнительное образование" value={parseJsonField('additional_education')} onChange={() => {}} edit={false} />
+                  <EditableField 
+                    label="Образование" 
+                    value={getFieldValue('education')} 
+                    onChange={(e) => handleFieldChange('education', e.target.value)} 
+                    edit={editMode} 
+                    multiline
+                  />
+                  <EditableField 
+                    label="Дополнительное образование" 
+                    value={getFieldValue('additional_education')} 
+                    onChange={(e) => handleFieldChange('additional_education', e.target.value)} 
+                    edit={editMode} 
+                    multiline
+                  />
                 </div>
               )} />
 
-              <SubCard title="Текущая роль" render={(edit) => (
+              <SubCard title="Текущая роль" render={() => (
                 <div className="form-grid">
-                  <EditableField label="Текущая должность" value={parseJsonField('current_role')} onChange={() => {}} edit={false} />
-                  <EditableField label="Обязанности" value={parseJsonField('responsibilities')} onChange={() => {}} edit={false} />
+                  <EditableField 
+                    label="Текущая должность" 
+                    value={getFieldValue('current_role')} 
+                    onChange={(e) => handleFieldChange('current_role', e.target.value)} 
+                    edit={editMode} 
+                  />
+                  <EditableField 
+                    label="Обязанности" 
+                    value={getFieldValue('responsibilities')} 
+                    onChange={(e) => handleFieldChange('responsibilities', e.target.value)} 
+                    edit={editMode} 
+                    multiline
+                  />
                 </div>
               )} />
 
-              <SubCard title="Навыки и компетенции" render={(edit) => (
+              <SubCard title="Навыки и компетенции" render={() => (
                 <div className="form-grid">
-                  <EditableField label="Навыки" value={parseJsonField('skills')} onChange={() => {}} edit={false} />
-                  <EditableField label="Компетенции" value={parseJsonField('competencies')} onChange={() => {}} edit={false} />
-                  <EditableField label="Языки" value={parseJsonField('languages')} onChange={() => {}} edit={false} />
+                  <EditableField 
+                    label="Навыки" 
+                    value={getFieldValue('skills')} 
+                    onChange={(e) => handleFieldChange('skills', e.target.value)} 
+                    edit={editMode} 
+                    multiline
+                  />
+                  <EditableField 
+                    label="Компетенции" 
+                    value={getFieldValue('competencies')} 
+                    onChange={(e) => handleFieldChange('competencies', e.target.value)} 
+                    edit={editMode} 
+                    multiline
+                  />
+                  <EditableField 
+                    label="Языки" 
+                    value={getFieldValue('languages')} 
+                    onChange={(e) => handleFieldChange('languages', e.target.value)} 
+                    edit={editMode} 
+                    multiline
+                  />
                 </div>
               )} />
 
-              <SubCard title="Опыт работы" render={(edit) => (
+              <SubCard title="Опыт работы" render={() => (
                 <div className="form-grid">
-                  <EditableField label="Предыдущие места работы" value={parseJsonField('jobs')} onChange={() => {}} edit={false} />
+                  <EditableField 
+                    label="Предыдущие места работы" 
+                    value={getFieldValue('jobs')} 
+                    onChange={(e) => handleFieldChange('jobs', e.target.value)} 
+                    edit={editMode} 
+                    multiline
+                  />
                 </div>
               )} />
 
-              <SubCard title="Дополнительная информация" render={(edit) => (
+              <SubCard title="Дополнительная информация" render={() => (
                 <div className="form-grid">
-                  <EditableField label="Комментарии" value={getCvValue('comments')} onChange={() => {}} edit={false} />
-                  <EditableField label="Рейтинг" value={getCvValue('rating') ? `${getCvValue('rating')}/10` : 'Не оценен'} onChange={() => {}} edit={false} />
-                  <EditableField label="Теги" value={parseJsonField('tags')} onChange={() => {}} edit={false} />
-                  <EditableField label="Карьерный путь" value={parseJsonField('career_path')} onChange={() => {}} edit={false} />
+                  <EditableField 
+                    label="Комментарии" 
+                    value={getFieldValue('comments')} 
+                    onChange={(e) => handleFieldChange('comments', e.target.value)} 
+                    edit={editMode} 
+                    multiline
+                  />
+                  <EditableField 
+                    label="Рейтинг" 
+                    value={getFieldValue('rating')} 
+                    onChange={(e) => handleFieldChange('rating', e.target.value)} 
+                    edit={editMode} 
+                  />
+                  <EditableField 
+                    label="Теги" 
+                    value={getFieldValue('tags')} 
+                    onChange={(e) => handleFieldChange('tags', e.target.value)} 
+                    edit={editMode} 
+                    multiline
+                  />
+                  <EditableField 
+                    label="Карьерный путь" 
+                    value={getFieldValue('career_path')} 
+                    onChange={(e) => handleFieldChange('career_path', e.target.value)} 
+                    edit={editMode} 
+                    multiline
+                  />
                 </div>
               )} />
 
-              <SubCard title="Статус анализа" render={(edit) => (
+              <SubCard title="Статус анализа" render={() => (
                 <div className="form-grid">
-                  <EditableField label="Статус обработки" value={getCvValue('analysis_status', 'Ожидает анализа')} onChange={() => {}} edit={false} />
+                  <EditableField 
+                    label="Статус обработки" 
+                    value={getFieldValue('analysis_status', 'Ожидает анализа')} 
+                    onChange={(e) => handleFieldChange('analysis_status', e.target.value)} 
+                    edit={editMode} 
+                  />
                 </div>
               )} />
             </>
@@ -2012,9 +2210,6 @@ function SubCard({ title, render }) {
     <div className="subcard">
       <div className="subcard__header">
         <h4 className="subcard__title">{title}</h4>
-        <button className="btn btn-ghost btn-small" type="button" onClick={() => setEdit((v) => !v)}>
-          {edit ? 'Сохранить' : 'Редактировать'}
-        </button>
       </div>
       <div className="subcard__body">{render(edit)}</div>
     </div>
