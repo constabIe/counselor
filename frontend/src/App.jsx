@@ -134,23 +134,39 @@ export default function App() {
   const [showCvManager, setShowCvManager] = React.useState(false);
   const [dashboardKey, setDashboardKey] = React.useState(0); // Для принудительного обновления EmployeeDashboard
 
+  // Функция для загрузки данных пользователя с бейджами
+  const loadUserDataWithBadges = React.useCallback(async (token) => {
+    try {
+      // Загружаем профиль пользователя
+      const data = await api.getUserProfile(token);
+      
+      // Загружаем бейджи отдельно
+      const badges = await api.getMyBadges(token);
+      
+      // Маппим данные в нужный формат
+      const mapped = {
+        fullName: data.full_name || data.fullName || data.name || data.email || 'Пользователь',
+        rating: (data.rating !== undefined && data.rating !== null) ? data.rating : 0,
+        xp: (data.xp !== undefined && data.xp !== null) ? data.xp : 0,
+        badges: badges, // Используем бейджи из отдельного эндпоинта (уже ограничены 3 последними)
+        cvFileName: data.cv_file_name || data.cvFileName || data.cv || '',
+        uploadedAt: data.uploaded_at || data.uploadedAt || '',
+        // keep raw profile in case other components need it
+        __raw: data,
+      };
+
+      setUserData(mapped);
+      return { mapped, data };
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      throw error;
+    }
+  }, []);
+
   React.useEffect(() => {
     if (token) {
-      api.getUserProfile(token)
-        .then(async data => {
-          // map backend profile to the shape EmployeeDashboard expects
-          const mapped = {
-            fullName: data.full_name || data.fullName || data.name || data.email || 'Пользователь',
-            rating: (data.rating !== undefined && data.rating !== null) ? data.rating : 0,
-            xp: (data.xp !== undefined && data.xp !== null) ? data.xp : 0,
-            badges: Array.isArray(data.badges) ? data.badges : [],
-            cvFileName: data.cv_file_name || data.cvFileName || data.cv || '',
-            uploadedAt: data.uploaded_at || data.uploadedAt || '',
-            // keep raw profile in case other components need it
-            __raw: data,
-          };
-
-          setUserData(mapped);
+      loadUserDataWithBadges(token)
+        .then(async ({ mapped, data }) => {
 
           const role = (data.role || data.user_role || '').toString().toLowerCase();
           
@@ -253,19 +269,7 @@ export default function App() {
     
     // Загружаем обновленную информацию о пользователе
     if (token) {
-      api.getUserProfile(token)
-        .then(data => {
-          const mapped = {
-            fullName: data.full_name || data.fullName || data.name || data.email || 'Пользователь',
-            rating: (data.rating !== undefined && data.rating !== null) ? data.rating : 0,
-            xp: (data.xp !== undefined && data.xp !== null) ? data.xp : 0,
-            badges: Array.isArray(data.badges) ? data.badges : [],
-            cvFileName: data.cv_file_name || data.cvFileName || data.cv || '',
-            uploadedAt: data.uploaded_at || data.uploadedAt || '',
-            __raw: data,
-          };
-          setUserData(mapped);
-        })
+      loadUserDataWithBadges(token)
         .catch(console.error);
     }
   };

@@ -278,5 +278,27 @@ export const api = {
       await parseError(response);
     }
     return response.json();
+  },
+
+  async getMyBadges(token) {
+    const response = await fetch(`${API_URL}/badges/my`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    const data = await response.json();
+    
+    // Извлекаем названия бейджей из структуры и берём только 3 последних
+    const badges = Array.isArray(data.badges) 
+      ? data.badges
+          .sort((a, b) => new Date(b.earned_at) - new Date(a.earned_at)) // Сортируем по дате получения (новые сначала)
+          .slice(0, 3) // Берём 3 последних
+          .map(item => item.badge.name) // Извлекаем название бейджа
+      : [];
+    
+    return badges;
   }
 };
