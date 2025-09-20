@@ -224,6 +224,7 @@ export default function App() {
       ...prev,
       cvFileName: fileName,
       uploadedAt: new Date().toLocaleString('ru-RU', {
+        timeZone: 'Europe/Moscow',
         day: '2-digit',
         month: 'long',
         hour: '2-digit',
@@ -384,6 +385,30 @@ function LandingPage({ onStart }) {
 }
 
 import { api } from './api';
+
+// Утилита для форматирования времени в московском часовом поясе
+const formatMoscowTime = (dateString) => {
+  if (!dateString) return 'Не указано';
+  
+  const date = new Date(dateString);
+  return date.toLocaleString('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    day: '2-digit',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+// Утилита для форматирования даты в московском часовом поясе
+const formatMoscowDate = (dateString) => {
+  if (!dateString) return 'Не указано';
+  
+  const date = new Date(dateString);
+  return date.toLocaleDateString('ru-RU', {
+    timeZone: 'Europe/Moscow'
+  });
+};
 
 function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToken }) {
   const [isLoading, setIsLoading] = React.useState(false);
@@ -768,12 +793,7 @@ function CvManager({
               <div className="cv-card__info">
                 <p className="cv-card__file">{currentCv.original_filename}</p>
                 <p className="cv-card__time">
-                  Загружено: {new Date(currentCv.uploaded_at).toLocaleString('ru-RU', {
-                    day: '2-digit',
-                    month: 'long',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  Загружено: {formatMoscowTime(currentCv.uploaded_at)}
                 </p>
               </div>
               <div className="cv-card__actions">
@@ -1371,12 +1391,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
             <>
               <p className="cv-card__file">{currentCv.original_filename}</p>
               <p className="cv-card__time">
-                Загружено: {new Date(currentCv.uploaded_at).toLocaleString('ru-RU', {
-                  day: '2-digit',
-                  month: 'long',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                Загружено: {formatMoscowTime(currentCv.uploaded_at)}
               </p>
             </>
           ) : (
@@ -1813,7 +1828,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
                       <div className="course-info__item">
                         <span className="course-info__label">Дата создания:</span>
                         <span className="course-info__value">
-                          {new Date(selectedCourse.created_at).toLocaleDateString('ru-RU')}
+                          {formatMoscowDate(selectedCourse.created_at)}
                         </span>
                       </div>
                     )}
@@ -2059,7 +2074,7 @@ function HrDashboard({ onLogout }) {
                     <h2>{folder.name}</h2>
                     <p>{folder.candidates_count || 0} кандидатов</p>
                     {folder.description && <p className="folder-description">{folder.description}</p>}
-                    <span>Создано {new Date(folder.created_at).toLocaleDateString('ru-RU')}</span>
+                    <span>Создано {formatMoscowDate(folder.created_at)}</span>
                   </div>
                   <button className="folder-card__action" type="button" onClick={() => openFolderModal(folder)}>
                     Открыть папку
