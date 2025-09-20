@@ -237,7 +237,9 @@ export const api = {
     if (!response.ok) {
       await parseError(response);
     }
-    return response.json();
+    
+    // Возвращаем success для пустых ответов
+    return { success: true };
   },
 
   async getJobById(token, jobId) {

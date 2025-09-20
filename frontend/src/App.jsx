@@ -2512,13 +2512,22 @@ function HrDashboard({ onLogout }) {
     
     try {
       await api.deleteFolder(token, folderId);
-      // Перезагружаем список папок с сервера
+      
+      // Сначала оптимистично удаляем из локального состояния
+      setFolders(prev => prev.filter(folder => folder.id !== folderId));
+      
+      // Затем перезагружаем список папок с сервера для синхронизации
       await loadFolders();
+      
       // Закрываем модальное окно
       closeFolderModal();
+      
     } catch (error) {
       console.error('Ошибка удаления папки:', error);
       alert('Ошибка при удалении папки: ' + (error.message || 'Неизвестная ошибка'));
+      
+      // В случае ошибки перезагружаем список для восстановления состояния
+      await loadFolders();
     }
   };
 
