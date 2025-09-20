@@ -409,10 +409,18 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
     try {
       setIsLoading(true);
       setError(null);
+      
+      // Преобразуем роль в нужный формат
+      const roleMap = {
+        'employee': 'user',
+        'hr': 'hr'
+      };
+      
       const data = {
         email: registerEmail,
         password: registerPassword,
         full_name: registerName,
+        role: roleMap[registerRole] || 'user'
       };
 
       const response = await api.register(data);
