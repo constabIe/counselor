@@ -2001,34 +2001,308 @@ function HrDashboard({ onLogout }) {
 }
 
 function VacanciesTab() {
-  const [vacancies, setVacancies] = React.useState([{ id: 'v1', title: 'Frontend Junior', location: 'Казань', format: 'гибрид' }])
-  const [title, setTitle] = React.useState('')
-  const [location, setLocation] = React.useState('')
-  const [format, setFormat] = React.useState('')
-  const add = () => {
-    if (!title.trim()) return
-    setVacancies((prev) => [...prev, { id: String(Date.now()), title, location, format }])
-    setTitle(''); setLocation(''); setFormat('')
+  const [vacancies, setVacancies] = React.useState([])
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [error, setError] = React.useState(null)
+  const [selectedJob, setSelectedJob] = React.useState(null)
+  const [showJobModal, setShowJobModal] = React.useState(false)
+  const [token] = React.useState(localStorage.getItem('token'))
+  
+  // Загружаем вакансии при монтировании компонента
+  React.useEffect(() => {
+    if (token) {
+      loadJobs();
+    }
+  }, [token]);
+
+  const loadJobs = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await api.getJobs(token);
+      setVacancies(data.jobs || []);
+    } catch (err) {
+      console.error('Ошибка загрузки вакансий:', err);
+      setError(err.message || 'Ошибка при загрузке вакансий');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleJobClick = (job) => {
+    setSelectedJob(job);
+    setShowJobModal(true);
+  };
+
+  const closeJobModal = () => {
+    setShowJobModal(false);
+    setSelectedJob(null);
+  };
+
+  const formatSalary = (salary, currency) => {
+    if (!salary) return 'Не указана';
+    return `${salary.toLocaleString()} ${currency || 'руб.'}`;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Не указана';
+    return new Date(dateString).toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const getStatusText = (status) => {
+    const statusMap = {
+      'active': 'Активна',
+      'paused': 'Приостановлена',
+      'closed': 'Закрыта'
+    };
+    return statusMap[status] || status;
+  };
+
+  const getLevelText = (level) => {
+    const levelMap = {
+      'intern': 'Стажер',
+      'junior': 'Junior',
+      'middle': 'Middle',
+      'senior': 'Senior',
+      'lead': 'Lead'
+    };
+    return levelMap[level] || level;
+  };
+
+  const getEmploymentTypeText = (type) => {
+    const typeMap = {
+      'full_time': 'Полная занятость',
+      'part_time': 'Частичная занятость',
+      'contract': 'Контракт',
+      'internship': 'Стажировка'
+    };
+    return typeMap[type] || type;
+  };
+
+  if (isLoading) {
+    return (
+      <section className="panel">
+        <div className="panel__header"><h3>Свободные вакансии</h3></div>
+        <div style={{ padding: 24, textAlign: 'center' }}>Загрузка вакансий...</div>
+      </section>
+    );
   }
+
+  if (error) {
+    return (
+      <section className="panel">
+        <div className="panel__header"><h3>Свободные вакансии</h3></div>
+        <div style={{ padding: 24, textAlign: 'center', color: '#ef4444' }}>
+          Ошибка: {error}
+          <br />
+          <button 
+            className="btn btn-ghost" 
+            style={{ marginTop: 16 }} 
+            onClick={loadJobs}
+          >
+            Попробовать снова
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="panel">
-      <div className="panel__header"><h3>Свободные вакансии</h3></div>
-      <div className="form-grid">
-        <label className="field"><span className="field__label">Название</span><input className="field__input" value={title} onChange={(e) => setTitle(e.target.value)} /></label>
-        <label className="field"><span className="field__label">Локация</span><input className="field__input" value={location} onChange={(e) => setLocation(e.target.value)} /></label>
-        <label className="field"><span className="field__label">Формат</span><input className="field__input" placeholder="офис/гибрид/удалёнка" value={format} onChange={(e) => setFormat(e.target.value)} /></label>
-        <div><button className="btn btn-purple" type="button" onClick={add}>Добавить</button></div>
+      <div className="panel__header">
+        <h3>Свободные вакансии</h3>
+        <button 
+          className="btn btn-ghost btn-small" 
+          onClick={loadJobs}
+          title="Обновить список вакансий"
+        >
+          Обновить
+        </button>
       </div>
-      <div className="jobs" style={{ marginTop: 16 }}>
-        {vacancies.map((v) => (
-          <article key={v.id} className="job-card">
-            <h4 className="job-card__title">{v.title}</h4>
-            <p className="job-card__company">{(v.location || '-') + ' - ' + (v.format || '-')}</p>
-          </article>
-        ))}
-      </div>
+      
+      {vacancies.length === 0 ? (
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          Нет доступных вакансий
+        </div>
+      ) : (
+        <div className="jobs" style={{ marginTop: 16 }}>
+          {vacancies.map((job) => (
+            <article 
+              key={job.id} 
+              className="job-card"
+              onClick={() => handleJobClick(job)}
+              style={{ cursor: 'pointer' }}
+            >
+              <h4 className="job-card__title">{job.title}</h4>
+              <p className="job-card__company">
+                {job.department} • {getLevelText(job.level)}
+              </p>
+              <p className="job-card__location">
+                {job.location} {job.remote_available ? '(возможна удаленка)' : ''}
+              </p>
+              <p className="job-card__salary">
+                {formatSalary(job.average_salary, job.salary_currency)}
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {showJobModal && selectedJob && (
+        <JobDetailsModal 
+          job={selectedJob} 
+          onClose={closeJobModal}
+          formatSalary={formatSalary}
+          formatDate={formatDate}
+          getStatusText={getStatusText}
+          getLevelText={getLevelText}
+          getEmploymentTypeText={getEmploymentTypeText}
+        />
+      )}
     </section>
   )
+}
+
+function JobDetailsModal({ 
+  job, 
+  onClose, 
+  formatSalary, 
+  formatDate, 
+  getStatusText, 
+  getLevelText, 
+  getEmploymentTypeText 
+}) {
+  return (
+    <div className="modal" role="dialog" aria-modal="true">
+      <div className="modal__backdrop" onClick={onClose} />
+      <div className="modal__dialog modal__dialog--large" role="document">
+        <header className="modal__header">
+          <div>
+            <h2>{job.title}</h2>
+            <p className="modal__subtitle">{job.department}</p>
+          </div>
+          <button className="icon-button icon-button--ghost modal__close" type="button" onClick={onClose}>
+            <CloseIcon className="icon icon--small" />
+          </button>
+        </header>
+
+        <div className="modal__content">
+          <div className="job-details">
+            <div className="job-details__section">
+              <h3>Основная информация</h3>
+              <div className="job-details__grid">
+                <div className="job-details__item">
+                  <span className="job-details__label">Уровень:</span>
+                  <span className="job-details__value">{getLevelText(job.level)}</span>
+                </div>
+                <div className="job-details__item">
+                  <span className="job-details__label">Тип занятости:</span>
+                  <span className="job-details__value">{getEmploymentTypeText(job.employment_type)}</span>
+                </div>
+                <div className="job-details__item">
+                  <span className="job-details__label">Локация:</span>
+                  <span className="job-details__value">{job.location || 'Не указана'}</span>
+                </div>
+                <div className="job-details__item">
+                  <span className="job-details__label">Удаленная работа:</span>
+                  <span className="job-details__value">{job.remote_available ? 'Возможна' : 'Нет'}</span>
+                </div>
+                <div className="job-details__item">
+                  <span className="job-details__label">Опыт:</span>
+                  <span className="job-details__value">
+                    {job.min_experience_years !== undefined && job.max_experience_years !== undefined
+                      ? `${job.min_experience_years}-${job.max_experience_years} лет`
+                      : 'Не указан'
+                    }
+                  </span>
+                </div>
+                <div className="job-details__item">
+                  <span className="job-details__label">Зарплата:</span>
+                  <span className="job-details__value">{formatSalary(job.average_salary, job.salary_currency)}</span>
+                </div>
+                <div className="job-details__item">
+                  <span className="job-details__label">Статус:</span>
+                  <span className={`job-details__value job-details__value--status job-details__value--${job.status}`}>
+                    {getStatusText(job.status)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {job.description && (
+              <div className="job-details__section">
+                <h3>Описание</h3>
+                <div className="job-details__text">
+                  {job.description}
+                </div>
+              </div>
+            )}
+
+            {job.requirements && (
+              <div className="job-details__section">
+                <h3>Требования</h3>
+                <div className="job-details__text">
+                  {job.requirements}
+                </div>
+              </div>
+            )}
+
+            {job.responsibilities && (
+              <div className="job-details__section">
+                <h3>Обязанности</h3>
+                <div className="job-details__text">
+                  {job.responsibilities}
+                </div>
+              </div>
+            )}
+
+            {job.required_skills && job.required_skills.length > 0 && (
+              <div className="job-details__section">
+                <h3>Необходимые навыки</h3>
+                <div className="job-details__skills">
+                  {job.required_skills.map((skill, index) => (
+                    <span key={index} className="job-details__skill">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="job-details__section">
+              <h3>Даты</h3>
+              <div className="job-details__grid">
+                <div className="job-details__item">
+                  <span className="job-details__label">Создана:</span>
+                  <span className="job-details__value">{formatDate(job.created_at)}</span>
+                </div>
+                <div className="job-details__item">
+                  <span className="job-details__label">Обновлена:</span>
+                  <span className="job-details__value">{formatDate(job.updated_at)}</span>
+                </div>
+                {job.published_at && (
+                  <div className="job-details__item">
+                    <span className="job-details__label">Опубликована:</span>
+                    <span className="job-details__value">{formatDate(job.published_at)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer className="modal__footer">
+          <button className="btn btn-ghost" type="button" onClick={onClose}>
+            Закрыть
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
 }
 
 function CvResultsModal({ list, onClose }) {

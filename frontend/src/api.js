@@ -159,5 +159,17 @@ export const api = {
       await parseError(response);
     }
     return response.json();
+  },
+
+  async getJobs(token) {
+    const response = await fetch(`${API_URL}/jobs/`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
   }
 };
