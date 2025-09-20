@@ -1,6 +1,78 @@
 ﻿import React, { useState } from 'react'
 import './App.css'
 
+// Компонент для показа уведомлений о начислении XP
+const XPNotification = ({ show, xpAmount, message, onClose }) => {
+  console.log('XPNotification render:', { show, xpAmount, message }); // Отладка
+  
+  React.useEffect(() => {
+    if (show) {
+      console.log('XPNotification showing, setting timer'); // Отладка
+      const timer = setTimeout(() => {
+        onClose();
+      }, 3000); // Автоматически скрываем через 3 секунды
+      return () => clearTimeout(timer);
+    }
+  }, [show, onClose]);
+
+  if (!show) return null;
+
+  return (
+    <div className="xp-notification" style={{
+      position: 'fixed',
+      top: '40%',
+      right: '20px',
+      zIndex: 1000,
+      backgroundColor: 'linear-gradient(135deg, #10b981, #059669)',
+      background: 'linear-gradient(135deg, #10b981, #059669)',
+      padding: '16px 20px',
+      borderRadius: '12px',
+      boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
+      color: 'white',
+      minWidth: '300px',
+      maxWidth: '400px'
+    }}>
+      <div className="xp-notification__content" style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px'
+      }}>
+        <div className="xp-notification__icon" style={{fontSize: '24px'}}>🎉</div>
+        <div className="xp-notification__text" style={{flex: 1}}>
+          <div className="xp-notification__title" style={{
+            fontWeight: '700',
+            fontSize: '16px',
+            marginBottom: '4px'
+          }}>Поздравляем!</div>
+          <div className="xp-notification__message" style={{
+            fontSize: '14px',
+            opacity: '0.9',
+            marginBottom: '4px'
+          }}>{message}</div>
+          <div className="xp-notification__xp" style={{
+            fontWeight: '700',
+            fontSize: '18px',
+            color: '#fbbf24'
+          }}>+{xpAmount} XP</div>
+        </div>
+        <button 
+          className="xp-notification__close" 
+          onClick={onClose}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'white',
+            fontSize: '20px',
+            cursor: 'pointer',
+            padding: '4px',
+            borderRadius: '4px'
+          }}
+        >×</button>
+      </div>
+    </div>
+  );
+};
+
 const makeEmployeeData = () => ({
   fullName: 'Файзуллина Дилия',
   rating: 4.5,
@@ -133,6 +205,28 @@ export default function App() {
   const [isFirstLogin, setIsFirstLogin] = React.useState(false);
   const [showCvManager, setShowCvManager] = React.useState(false);
   const [dashboardKey, setDashboardKey] = React.useState(0); // Для принудительного обновления EmployeeDashboard
+  
+  // Состояние для XP уведомлений
+  const [xpNotification, setXpNotification] = React.useState({
+    show: false,
+    xpAmount: 0,
+    message: ''
+  });
+
+  // Функция для показа XP уведомления
+  const showXPNotification = React.useCallback((xpAmount, message) => {
+    console.log('showXPNotification called:', { xpAmount, message }); // Отладка
+    setXpNotification({
+      show: true,
+      xpAmount,
+      message
+    });
+  }, []);
+
+  // Функция для скрытия XP уведомления
+  const hideXPNotification = React.useCallback(() => {
+    setXpNotification(prev => ({ ...prev, show: false }));
+  }, []);
 
   // Функция для загрузки данных пользователя с бейджами
   const loadUserDataWithBadges = React.useCallback(async (token) => {
@@ -267,6 +361,9 @@ export default function App() {
     setView('employeeDashboard');
     setDashboardKey(prev => prev + 1); // Принудительно обновляем EmployeeDashboard
     
+    // Показываем уведомление о начислении XP
+    showXPNotification(40, 'Вы успешно загрузили CV!');
+    
     // Загружаем обновленную информацию о пользователе
     if (token) {
       loadUserDataWithBadges(token)
@@ -334,12 +431,21 @@ export default function App() {
           onLogout={goLanding}
           onReupload={handleShowCvManager}
           onOpenTasks={() => setShowTaskModal(true)}
+          showXPNotification={showXPNotification}
         />
       )}
 
       {view === 'hrDashboard' && <HrDashboard onLogout={goLanding} />}
 
       {showTaskModal && <TaskModal onClose={() => setShowTaskModal(false)} />}
+      
+      {/* XP Notification */}
+      <XPNotification 
+        show={xpNotification.show}
+        xpAmount={xpNotification.xpAmount}
+        message={xpNotification.message}
+        onClose={hideXPNotification}
+      />
     </div>
   )
 }
@@ -994,7 +1100,7 @@ function EmployeeOnboarding({
 }
 
 
-function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
+function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNotification }) {
   // Функция для перевода уровней
   const getJobLevelLabel = (level) => {
     const levelLabels = {
@@ -1101,6 +1207,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
       setSaveMessage('');
       
       await api.updateCv(token, currentCv.id, editedCvData);
+      
+      // Показываем уведомление о начислении XP
+      showXPNotification(10, 'Вы обновили информацию в CV!');
       
       // Обновляем локальное состояние
       setCurrentCv(prev => ({
@@ -1251,6 +1360,10 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
       setEnrollmentMessage('');
       await api.enrollInCourse(token, selectedCourse.id);
       await loadMyEnrollments(); // Перезагружаем список записей
+      
+      // Показываем уведомление о начислении XP
+      showXPNotification(20, 'Вы записались на курс!');
+      
       setEnrollmentMessage('Вы успешно записались на курс!');
       setTimeout(() => {
         setSelectedCourse(null);
@@ -1268,6 +1381,17 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
   const handleCloseCourseModal = () => {
     setSelectedCourse(null);
     setEnrollmentMessage('');
+  };
+
+  // Функция для отклика на вакансию
+  const handleJobApply = (jobTitle) => {
+    showXPNotification(10, `Вы откликнулись на вакансию "${jobTitle}"!`);
+  };
+
+  // Функция для покупки товара в магазине
+  const handleStorePurchase = (itemName, price) => {
+    // Здесь может быть логика проверки достаточности XP и реальная покупка
+    alert(`Вы успешно заказали "${itemName}" за ${price}!`);
   };
 
   const [form, setForm] = React.useState({
@@ -1487,7 +1611,11 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
                   <div className="job-card__meta">
                     <span className="job-card__level">{getJobLevelLabel(job.level)}</span>
                   </div>
-                  <button className="btn btn-outline job-card__action" type="button">
+                  <button 
+                    className="btn btn-outline job-card__action" 
+                    type="button"
+                    onClick={() => handleJobApply(job.title)}
+                  >
                     Откликнуться
                   </button>
                 </article>
@@ -1873,56 +2001,96 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
               <h4>Носки с логотипом</h4>
               <p className="store-item-description">Удобные носки с корпоративным логотипом компании</p>
               <div className="store-item-price">500 XP</div>
-              <button className="btn btn-primary">Заказать</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => handleStorePurchase('Носки с логотипом', '500 XP')}
+              >
+                Заказать
+              </button>
             </div>
             
             <div className="store-item">
               <h4>Футболка компании</h4>
               <p className="store-item-description">Качественная футболка с фирменным дизайном</p>
               <div className="store-item-price">1200 XP</div>
-              <button className="btn btn-primary">Заказать</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => handleStorePurchase('Футболка компании', '1200 XP')}
+              >
+                Заказать
+              </button>
             </div>
             
             <div className="store-item">
               <h4>Кружка с логотипом</h4>
               <p className="store-item-description">Керамическая кружка для кофе и чая</p>
               <div className="store-item-price">800 XP</div>
-              <button className="btn btn-primary">Заказать</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => handleStorePurchase('Кружка с логотипом', '800 XP')}
+              >
+                Заказать
+              </button>
             </div>
             
             <div className="store-item">
               <h4>Оплата питания</h4>
               <p className="store-item-description">Пополнение баланса для оплаты в корпоративной столовой</p>
               <div className="store-item-price">от 1000 XP</div>
-              <button className="btn btn-primary">Пополнить</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => handleStorePurchase('Оплата питания', 'от 1000 XP')}
+              >
+                Пополнить
+              </button>
             </div>
             
             <div className="store-item">
               <h4>Сертификат Wildberries</h4>
               <p className="store-item-description">Подарочный сертификат на покупки в Wildberries</p>
               <div className="store-item-price">3000 XP</div>
-              <button className="btn btn-primary">Заказать</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => handleStorePurchase('Сертификат Wildberries', '3000 XP')}
+              >
+                Заказать
+              </button>
             </div>
             
             <div className="store-item">
               <h4>Сертификат Ozon</h4>
               <p className="store-item-description">Подарочный сертификат на покупки в Ozon</p>
               <div className="store-item-price">2500 XP</div>
-              <button className="btn btn-primary">Заказать</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => handleStorePurchase('Сертификат Ozon', '2500 XP')}
+              >
+                Заказать
+              </button>
             </div>
             
             <div className="store-item">
               <h4>Сертификат Пятёрочка</h4>
               <p className="store-item-description">Подарочная карта для покупок продуктов</p>
               <div className="store-item-price">2000 XP</div>
-              <button className="btn btn-primary">Заказать</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => handleStorePurchase('Сертификат Пятёрочка', '2000 XP')}
+              >
+                Заказать
+              </button>
             </div>
             
             <div className="store-item">
               <h4>Сертификат развлечений</h4>
               <p className="store-item-description">Сертификат на посещение кинотеатров и развлекательных центров</p>
               <div className="store-item-price">1500 XP</div>
-              <button className="btn btn-primary">Заказать</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => handleStorePurchase('Сертификат развлечений', '1500 XP')}
+              >
+                Заказать
+              </button>
             </div>
           </div>
         </section>
