@@ -194,9 +194,18 @@ export default function App() {
   const [showTaskModal, setShowTaskModal] = useState(false)
 
   const goLanding = () => {
+    // Очищаем токен при выходе
+    localStorage.removeItem('token')
+    setToken(null)
+    setUserData(null)
+    
+    // Сбрасываем состояние приложения
     setView('landing')
     setOnboardingSlide(0)
     setShowTaskModal(false)
+    setIsFirstLogin(false)
+    setShowCvManager(false)
+    setDashboardKey(0)
   }
 
   const handleEmployeeRegistration = () => {
