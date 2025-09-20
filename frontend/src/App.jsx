@@ -2536,6 +2536,26 @@ function VacanciesTab() {
     }
   };
 
+  const handleDeleteJob = async (jobId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить эту вакансию? Это действие нельзя отменить.')) {
+      return;
+    }
+
+    try {
+      await api.deleteJob(token, jobId);
+      
+      // Закрываем модальное окно
+      closeJobModal();
+      
+      // Перезагружаем список вакансий
+      await loadJobs();
+      
+    } catch (err) {
+      console.error('Ошибка удаления вакансии:', err);
+      alert(err.message || 'Ошибка при удалении вакансии');
+    }
+  };
+
   const formatSalary = (salary, currency) => {
     if (!salary) return 'Не указана';
     return `${salary.toLocaleString()} ${currency || 'руб.'}`;
@@ -2853,6 +2873,7 @@ function VacanciesTab() {
         <JobDetailsModal 
           job={selectedJob} 
           onClose={closeJobModal}
+          onDelete={handleDeleteJob}
           formatSalary={formatSalary}
           formatDate={formatDate}
           getStatusText={getStatusText}
@@ -2867,6 +2888,7 @@ function VacanciesTab() {
 function JobDetailsModal({ 
   job, 
   onClose, 
+  onDelete,
   formatSalary, 
   formatDate, 
   getStatusText, 
@@ -2993,6 +3015,14 @@ function JobDetailsModal({
         </div>
 
         <footer className="modal__footer">
+          <button 
+            className="btn btn-ghost btn-danger" 
+            type="button" 
+            onClick={() => onDelete(job.id)}
+            style={{ color: '#ef4444', marginRight: 'auto' }}
+          >
+            Удалить
+          </button>
           <button className="btn btn-ghost" type="button" onClick={onClose}>
             Закрыть
           </button>

@@ -239,6 +239,19 @@ export const api = {
     return response.json();
   },
 
+  async deleteJob(token, jobId) {
+    const response = await fetch(`${API_URL}/jobs/${jobId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.ok;
+  },
+
   async searchEmployees(token, searchData) {
     const response = await fetch(`${API_URL}/generation/employees/`, {
       method: 'POST',
