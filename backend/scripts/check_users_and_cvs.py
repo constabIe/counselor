@@ -32,7 +32,7 @@ async def check_users_and_cvs():
     try:
         async with AsyncSession(engine) as session:
             # Получаем всех пользователей
-            users_stmt = select(User).order_by(User.created_at.desc())
+            users_stmt = select(User).order_by(User.created_at.desc()) # type: ignore
             users_result = await session.execute(users_stmt)
             users = users_result.scalars().all()
             

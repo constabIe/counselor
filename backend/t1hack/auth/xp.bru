@@ -1,0 +1,15 @@
+meta {
+  name: xp
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8000/auth/me/rating-percentile
+  body: json
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

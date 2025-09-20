@@ -5,7 +5,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.users import repository as user_repo
-from src.modules.users.schemas import UserRegisterIn, UserLoginIn, TokenResponse, UserOut, RatingPercentileResponse
+from src.modules.badges import service as badge_service
+from src.modules.users.schemas import UserRegisterIn, UserLoginIn, TokenResponse, UserOut, RatingPercentileResponse, UserXPResponse
 from src.storages.sql.dependencies import get_db_session
 from src.modules.users.dependencies import CurrentUserDep
 from src.utils.security import verify_password, create_access_token
@@ -46,6 +47,12 @@ async def register(
             full_name=data.full_name,
             role=data.role,
         )
+        
+        # Проверяем и выдаем бейджи при регистрации
+        await badge_service.badge_service.check_and_award_badges(
+            session, user.id, "user_registered"
+        )
+        await session.commit()
         
         # Создаем токен
         access_token = create_access_token(data={"sub": str(user.id)})
@@ -154,3 +161,34 @@ async def get_user_rating_percentile(
     percentile = await user_repo.get_user_rating_percentile(session, current_user.id)
     
     return RatingPercentileResponse(percentile=percentile)
+
+
+@router.get(
+    "/me/xp",
+    response_model=UserXPResponse,
+    summary="Получить информацию о XP",
+    description="Возвращает детальную информацию о заработанном XP пользователя"
+)
+async def get_user_xp_info(
+    current_user: CurrentUserDep,
+    session: AsyncSession = Depends(get_db_session),
+) -> UserXPResponse:
+    """Получить информацию о XP пользователя"""
+    
+    # Получаем текущий XP пользователя
+    current_xp = await user_repo.get_user_xp(session, current_user.id)
+    
+    # Получаем XP от бейджей
+    from src.modules.badges import service as badge_service
+    badge_stats = await badge_service.badge_service.get_user_badge_stats(session, current_user.id)
+    xp_from_badges = badge_stats.total_xp_from_badges
+    
+    # Рассчитываем XP от активностей (всё остальное)
+    xp_from_activities = max(0, current_xp - xp_from_badges)
+    
+    return UserXPResponse(
+        current_xp=current_xp,
+        xp_from_badges=xp_from_badges,
+        xp_from_activities=xp_from_activities,
+        total_earned=current_xp
+    )

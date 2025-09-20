@@ -10,8 +10,9 @@ from sqlalchemy import select
 from src.modules.badges import repository as badge_repo
 from src.modules.badges.models import UserBadgesResponse, BadgeStatsResponse, UserBadgeResponse, BadgeResponse
 from src.modules.cv import repository as cv_repo
-from src.modules.courses import repository as course_repo
-from src.storages.sql.models import Badge, UserBadge
+from src.modules.courses import enrollment_repository as course_enrollment_repo
+from src.modules.users import repository as user_repo
+from src.storages.sql.models import Badge, UserBadge, EnrollmentStatus
 
 
 class BadgeService:
@@ -28,11 +29,16 @@ class BadgeService:
         if trigger == "course_completed":
             new_badges.extend(await self._check_course_badges(session, user_id, user_badge_codes, **kwargs))
             
+        elif trigger == "course_enrolled":
+            new_badges.extend(await self._check_course_badges(session, user_id, user_badge_codes, **kwargs))
+            
         elif trigger == "cv_uploaded":
             new_badges.extend(await self._check_cv_badges(session, user_id, user_badge_codes, **kwargs))
             
         elif trigger == "profile_updated":
             new_badges.extend(await self._check_profile_badges(session, user_id, user_badge_codes, **kwargs))
+            # Также проверяем CV бейджи при обновлении профиля
+            new_badges.extend(await self._check_cv_badges(session, user_id, user_badge_codes, **kwargs))
             
         elif trigger == "user_registered":
             new_badges.extend(await self._check_registration_badges(session, user_id, user_badge_codes, **kwargs))
@@ -50,17 +56,24 @@ class BadgeService:
         """Проверяет бэйджи связанные с курсами"""
         new_badges = []
         
-        # Получаем количество завершенных курсов
-        # Пока используем заглушку, потом подключим реальный репозиторий курсов
-        completed_count = 1  # await course_repo.get_user_completed_courses_count(session, user_id)
+        # Получаем количество записей на курсы
+        total_enrollments = await course_enrollment_repo.count_user_enrollments(session, user_id)
         
-        # Первый курс
-        if "first_course" not in user_badges and completed_count >= 1:
+        # Получаем статистику по статусам
+        enrollment_stats = await course_enrollment_repo.get_enrollment_counts_by_status(session, user_id)
+        completed_count = enrollment_stats.get("completed", 0)
+        
+        # Первый курс (запись на курс)
+        if "first_course" not in user_badges and total_enrollments >= 1:
             new_badges.append("first_course")
         
-        # Быстрый ученик (3 курса за месяц) - пока заглушка
-        if "fast_learner" not in user_badges and completed_count >= 3:
+        # Быстрый ученик (запись на 3 курса)
+        if "fast_learner" not in user_badges and total_enrollments >= 3:
             new_badges.append("fast_learner")
+            
+        # Добавим новый бейдж для завершения курса
+        if "course_master" not in user_badges and completed_count >= 1:
+            new_badges.append("course_master")
         
         return new_badges
 
@@ -74,18 +87,23 @@ class BadgeService:
             if cv_count >= 1:
                 new_badges.append("first_cv")
         
+        # Оптимизатор CV - за обновление полей CV (используем kwargs для передачи информации)
+        if "cv_optimizer" not in user_badges:
+            update_count = kwargs.get("cv_update_count", 0)
+            if update_count >= 5:  # После 5 обновлений CV
+                new_badges.append("cv_optimizer")
+        
         return new_badges
     
     async def _check_profile_badges(self, session: AsyncSession, user_id: UUID, user_badges: Set[str], **kwargs) -> List[str]:
         """Проверяет бэйджи связанные с профилем"""
         new_badges = []
         
-        # Мастер профиля - пока заглушка
+        # Мастер профиля - проверяем количество CV пользователя
         if "profile_master" not in user_badges:
-            # completion = await cv_repo.get_profile_completion(user_id)
-            # if completion >= 100:
-            #     new_badges.append("profile_master")
-            pass
+            cv_count = await cv_repo.get_user_active_cv_count(session, user_id)
+            if cv_count >= 3:  # Если у пользователя есть 3+ активных CV
+                new_badges.append("profile_master")
         
         return new_badges
     
@@ -115,8 +133,8 @@ class BadgeService:
         # Создаем связь
         user_badge = await badge_repo.create_user_badge(session, user_id, badge.id)
         
-        # Здесь можно добавить логику начисления XP пользователю
-        # await user_repo.add_xp(session, user_id, badge.xp_reward)
+        # Начисляем XP пользователю
+        await user_repo.add_xp_to_user(session, user_id, badge.xp_reward)
         
         return user_badge
 

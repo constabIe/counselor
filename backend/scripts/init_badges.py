@@ -31,6 +31,12 @@ INITIAL_BADGES = [
         "category": BadgeCategory.EDUCATION, 
         "xp_reward": 50
     },
+    {
+        "code": "course_master",
+        "name": "Мастер курсов", 
+        "category": BadgeCategory.EDUCATION,
+        "xp_reward": 100
+    },
     
     # Карьера
     {
@@ -38,6 +44,12 @@ INITIAL_BADGES = [
         "name": "Первый шаг",
         "category": BadgeCategory.CAREER,
         "xp_reward": 15
+    },
+    {
+        "code": "cv_optimizer",
+        "name": "Оптимизатор CV",
+        "category": BadgeCategory.CAREER,
+        "xp_reward": 25
     },
     {
         "code": "job_explorer",

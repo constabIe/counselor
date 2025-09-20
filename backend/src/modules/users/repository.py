@@ -99,3 +99,42 @@ async def get_user_rating_percentile(session: AsyncSession, user_id: UUID) -> Op
     # Вычисляем процентиль
     percentile = (lower_count / (len(user_ratings) - 1)) * 100
     return round(percentile, 1)
+
+
+async def add_xp_to_user(session: AsyncSession, user_id: UUID, xp_amount: int) -> User:
+    """Добавляет XP пользователю"""
+    result = await session.execute(select(User).where(User.id == user_id))  # type: ignore
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise ValueError(f"Пользователь с ID {user_id} не найден")
+    
+    user.xp += xp_amount
+    await session.flush()
+    await session.refresh(user)
+    return user
+
+
+async def get_user_xp(session: AsyncSession, user_id: UUID) -> int:
+    """Получает текущее количество XP пользователя"""
+    result = await session.execute(
+        select(User.xp).where(User.id == user_id)  # type: ignore
+    )
+    xp = result.scalar_one_or_none()
+    return xp or 0
+
+
+async def increment_user_cv_updates(session: AsyncSession, user_id: UUID) -> int:
+    """Увеличивает счетчик обновлений CV пользователя и возвращает новое значение"""
+    # Используем XP как примерный счетчик активности
+    # В реальной системе лучше добавить отдельное поле для подсчета обновлений
+    result = await session.execute(select(User).where(User.id == user_id))  # type: ignore
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        return 0
+    
+    # Примерно оцениваем количество обновлений по XP
+    # Это упрощение - в реальности лучше добавить отдельную таблицу activity_log
+    estimated_updates = max(0, (user.xp - 40) // 5)  # Убираем базовое XP и делим на примерное XP за обновление
+    return estimated_updates

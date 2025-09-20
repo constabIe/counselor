@@ -49,3 +49,20 @@ class RatingPercentileResponse(BaseModel):
                 "percentile": 85.5
             }
         }
+
+
+class UserXPResponse(BaseModel):
+    current_xp: int = Field(..., description="Текущее количество XP")
+    xp_from_badges: int = Field(..., description="XP от бейджей")
+    xp_from_activities: int = Field(..., description="XP от активностей")
+    total_earned: int = Field(..., description="Всего заработано XP")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "current_xp": 150,
+                "xp_from_badges": 80,
+                "xp_from_activities": 70,
+                "total_earned": 150
+            }
+        }

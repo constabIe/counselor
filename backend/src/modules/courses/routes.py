@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 
 from src.modules.courses import repository as courses_repo
 from src.modules.courses import enrollment_repository as enrollment_repo
+from src.modules.badges import service as badge_service
 from src.modules.courses.schemas import CourseOut, CourseCreate, CourseUpdate
 from src.modules.courses.enrollment_schemas import (
     EnrollmentCreate, EnrollmentOut, EnrollmentUpdate, 
@@ -334,6 +335,12 @@ async def enroll_to_course(
             session, current_user.id
         )
         
+        # Проверяем и выдаем бейджи за запись на курс
+        await badge_service.badge_service.check_and_award_badges(
+            session, current_user.id, "course_enrolled"
+        )
+        await session.commit()
+        
         return EnrollmentResponse(
             enrollment=EnrollmentOut(
                 id=enrollment_obj.id,
@@ -400,6 +407,13 @@ async def update_enrollment_status(
         )
     
     enrollment_obj, course_obj = enrollment_with_course
+    
+    # Проверяем и выдаем бейджи при завершении курса
+    if enrollment_update.status == EnrollmentStatus.COMPLETED:
+        await badge_service.badge_service.check_and_award_badges(
+            session, current_user.id, "course_completed"
+        )
+        await session.commit()
     
     return EnrollmentOut(
         id=enrollment_obj.id,

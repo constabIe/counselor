@@ -28,8 +28,8 @@ async def get_all_badges(
 @router.get("/users/{user_id}", response_model=UserBadgesResponse)
 async def get_user_badges(
     user_id: UUID,
-    session: AsyncSession = Depends(get_db_session),
-    current_user: CurrentUserDep = Depends()
+    current_user: CurrentUserDep,
+    session: AsyncSession = Depends(get_db_session)
 ) -> UserBadgesResponse:
     """Получить бэйджи конкретного пользователя"""
     # Проверяем права доступа - можно смотреть только свои бэйджи или у администратора
@@ -45,8 +45,8 @@ async def get_user_badges(
 @router.get("/users/{user_id}/stats", response_model=BadgeStatsResponse)
 async def get_user_badge_stats(
     user_id: UUID,
-    session: AsyncSession = Depends(get_db_session),
-    current_user: CurrentUserDep = Depends()
+    current_user: CurrentUserDep,
+    session: AsyncSession = Depends(get_db_session)
 ) -> BadgeStatsResponse:
     """Получить статистику по бэйджам пользователя"""
     # Проверяем права доступа
@@ -61,8 +61,8 @@ async def get_user_badge_stats(
 
 @router.get("/my", response_model=UserBadgesResponse)
 async def get_my_badges(
-    session: AsyncSession = Depends(get_db_session),
-    current_user: CurrentUserDep = Depends()
+    current_user: CurrentUserDep,
+    session: AsyncSession = Depends(get_db_session)
 ) -> UserBadgesResponse:
     """Получить свои бэйджи"""
     return await badge_service.badge_service.get_user_badges(session, current_user.id)
@@ -70,8 +70,8 @@ async def get_my_badges(
 
 @router.get("/my/stats", response_model=BadgeStatsResponse) 
 async def get_my_badge_stats(
-    session: AsyncSession = Depends(get_db_session),
-    current_user: CurrentUserDep = Depends()
+    current_user: CurrentUserDep,
+    session: AsyncSession = Depends(get_db_session)
 ) -> BadgeStatsResponse:
     """Получить статистику по своим бэйджам"""
     return await badge_service.badge_service.get_user_badge_stats(session, current_user.id)
