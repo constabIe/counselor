@@ -198,5 +198,32 @@ export const api = {
       await parseError(response);
     }
     return response.json();
+  },
+
+  async createFolder(token, folderData) {
+    const response = await fetch(`${API_URL}/folders/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(folderData),
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
+  },
+
+  async getFolderById(token, folderId) {
+    const response = await fetch(`${API_URL}/folders/${folderId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
   }
 };

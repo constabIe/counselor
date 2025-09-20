@@ -1908,12 +1908,29 @@ function HrDashboard({ onLogout }) {
   const [activeFolder, setActiveFolder] = React.useState(null)
   const [folders, setFolders] = React.useState([])
   const [isLoadingFolders, setIsLoadingFolders] = React.useState(false)
+  
+  // Состояния для создания папки
+  const [showCreateFolderModal, setShowCreateFolderModal] = React.useState(false)
+  const [isCreatingFolder, setIsCreatingFolder] = React.useState(false)
+  const [createFolderError, setCreateFolderError] = React.useState(null)
+  const [newFolder, setNewFolder] = React.useState({
+    name: '',
+    description: '',
+    job_id: ''
+  })
+  const [jobs, setJobs] = React.useState([])
+  const [isLoadingJobs, setIsLoadingJobs] = React.useState(false)
+
+  // Состояния для детальной информации о папке
+  const [folderDetails, setFolderDetails] = React.useState(null)
+  const [isLoadingFolderDetails, setIsLoadingFolderDetails] = React.useState(false)
 
   // Загружаем профиль HR при монтировании компонента
   React.useEffect(() => {
     if (token) {
       loadHrProfile();
       loadFolders();
+      loadJobs();
     }
   }, [token]);
 
@@ -1941,6 +1958,72 @@ function HrDashboard({ onLogout }) {
       setFolders(hrFolders);
     } finally {
       setIsLoadingFolders(false);
+    }
+  };
+
+  const loadJobs = async () => {
+    try {
+      setIsLoadingJobs(true);
+      const response = await api.getJobs(token);
+      setJobs(response.jobs || []);
+    } catch (error) {
+      console.error('Ошибка загрузки вакансий:', error);
+      setJobs([]);
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  };
+
+  // Функции для создания папки
+  const openCreateFolderModal = () => {
+    setShowCreateFolderModal(true);
+    setCreateFolderError(null);
+    setNewFolder({
+      name: '',
+      description: '',
+      job_id: ''
+    });
+  };
+
+  const closeCreateFolderModal = () => {
+    setShowCreateFolderModal(false);
+    setCreateFolderError(null);
+    setNewFolder({
+      name: '',
+      description: '',
+      job_id: ''
+    });
+  };
+
+  const handleCreateFolder = async () => {
+    try {
+      setIsCreatingFolder(true);
+      setCreateFolderError(null);
+
+      // Валидация
+      if (!newFolder.name.trim()) {
+        setCreateFolderError('Название папки обязательно');
+        return;
+      }
+      if (!newFolder.job_id) {
+        setCreateFolderError('Выберите вакансию');
+        return;
+      }
+
+      // Создаем папку
+      const folder = await api.createFolder(token, newFolder);
+      
+      // Обновляем список папок
+      await loadFolders();
+      
+      // Закрываем модальное окно
+      closeCreateFolderModal();
+      
+    } catch (err) {
+      console.error('Ошибка создания папки:', err);
+      setCreateFolderError(err.message || 'Ошибка при создании папки');
+    } finally {
+      setIsCreatingFolder(false);
     }
   };
 
@@ -1987,9 +2070,26 @@ function HrDashboard({ onLogout }) {
   }
 
   const update = (key) => (e) => setFilters((p) => ({ ...p, [key]: e.target.value }))
-  // Открытие модального окна с файлами папки
-  const openFolderModal = (folder) => setActiveFolder(folder)
-  const closeFolderModal = () => setActiveFolder(null)
+  
+  // Функции для работы с модальным окном папки
+  const openFolderModal = async (folder) => {
+    setActiveFolder(folder);
+    setIsLoadingFolderDetails(true);
+    try {
+      const details = await api.getFolderById(token, folder.id);
+      setFolderDetails(details);
+    } catch (error) {
+      console.error('Ошибка загрузки деталей папки:', error);
+      setFolderDetails(folder); // Используем базовую информацию в случае ошибки
+    } finally {
+      setIsLoadingFolderDetails(false);
+    }
+  };
+  
+  const closeFolderModal = () => {
+    setActiveFolder(null);
+    setFolderDetails(null);
+  };
 
   return (
     <div className="hr-dashboard">
@@ -2061,12 +2161,28 @@ function HrDashboard({ onLogout }) {
 
       {activeTab === 'folders' && (
         <section className="panel">
+          <div className="panel__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <h3>Папки с CV</h3>
+            <button className="btn btn-purple" type="button" onClick={openCreateFolderModal}>
+              Создать папку
+            </button>
+          </div>
+          
           {isLoadingFolders ? (
             <div style={{ padding: '2rem', textAlign: 'center' }}>
               <p>Загрузка папок...</p>
             </div>
           ) : (
-            <div className="hr-dashboard__grid">
+            <div 
+              className="hr-dashboard__grid" 
+              style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                gap: '1.5rem',
+                maxWidth: '1200px',
+                margin: '0 auto'
+              }}
+            >
               {folders.map((folder) => (
                 <article key={folder.id} className="folder-card" style={{ '--accent': '#5eead4' }}>
                   <div className="folder-card__icon"><FolderIcon className="icon" /></div>
@@ -2082,14 +2198,38 @@ function HrDashboard({ onLogout }) {
                 </article>
               ))}
               {folders.length === 0 && (
-                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>
-                  <p>У вас пока нет папок с CV</p>
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem' }}>
+                  <FolderIcon className="icon" style={{ fontSize: '3rem', color: '#9ca3af', marginBottom: '1rem' }} />
+                  <p style={{ fontSize: '1.125rem', color: '#6b7280', marginBottom: '1rem' }}>У вас пока нет папок с CV</p>
+                  <p style={{ color: '#9ca3af', marginBottom: '1.5rem' }}>Создайте папку для организации резюме кандидатов по вакансиям</p>
+                  <button className="btn btn-purple" type="button" onClick={openCreateFolderModal}>
+                    Создать первую папку
+                  </button>
                 </div>
               )}
             </div>
           )}
+          
           {activeFolder && (
-            <FolderFilesModal folder={activeFolder} onClose={closeFolderModal} />
+            <FolderFilesModal 
+              folder={activeFolder} 
+              folderDetails={folderDetails}
+              isLoadingDetails={isLoadingFolderDetails}
+              onClose={closeFolderModal} 
+            />
+          )}
+          
+          {showCreateFolderModal && (
+            <CreateFolderModal 
+              jobs={jobs}
+              isLoadingJobs={isLoadingJobs}
+              newFolder={newFolder}
+              setNewFolder={setNewFolder}
+              isCreating={isCreatingFolder}
+              error={createFolderError}
+              onSubmit={handleCreateFolder}
+              onClose={closeCreateFolderModal}
+            />
           )}
         </section>
       )}
@@ -2911,33 +3051,250 @@ function SubCard({ title, render }) {
   )
 }
 
-// Модальное окно для файлов папки
-function FolderFilesModal({ folder, onClose }) {
+// Модальное окно для информации о папке
+function FolderFilesModal({ folder, folderDetails, isLoadingDetails, onClose }) {
+  const formatMoscowDate = (dateString) => {
+    if (!dateString) return 'Неизвестно';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const displayData = folderDetails || folder;
+
   return (
     <div className="modal" role="dialog" aria-modal="true" style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
       <div className="modal__backdrop" onClick={onClose} />
-      <div className="modal__dialog" role="document" style={{width: '90%', maxWidth: '800px', margin: '0 auto'}}>
+      <div className="modal__dialog" role="document" style={{
+        width: '90%', 
+        maxWidth: '800px', 
+        margin: '0 auto',
+        backgroundColor: '#1f2937',
+        borderRadius: '12px',
+        border: '1px solid #374151'
+      }}>
+        <header className="modal__header" style={{
+          backgroundColor: '#111827',
+          borderTopLeftRadius: '12px',
+          borderTopRightRadius: '12px',
+          borderBottom: '1px solid #374151'
+        }}>
+          <h2 style={{fontSize: '1.5rem', marginBottom: '1rem', color: '#f3f4f6'}}>Информация о папке: {displayData.name}</h2>
+          <button className="icon-button icon-button--ghost modal__close" type="button" onClick={onClose} style={{color: '#f3f4f6'}}>
+            <CloseIcon className="icon icon--small" />
+          </button>
+        </header>
+        <div className="modal__content" style={{
+          maxHeight: '70vh', 
+          overflowY: 'auto', 
+          padding: '1.5rem',
+          backgroundColor: '#1f2937'
+        }}>
+          {isLoadingDetails ? (
+            <div style={{ padding: '2rem', textAlign: 'center' }}>
+              <p style={{color: '#d1d5db'}}>Загрузка деталей папки...</p>
+            </div>
+          ) : (
+            <div>
+              {/* Основная информация о папке */}
+              <div style={{marginBottom: '2rem', padding: '1.5rem', backgroundColor: '#374151', borderRadius: '8px', border: '1px solid #4b5563'}}>
+                <h3 style={{fontSize: '1.25rem', marginBottom: '1rem', color: '#f3f4f6'}}>Основная информация</h3>
+                <div style={{display: 'grid', gap: '0.75rem'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <span style={{fontWeight: '500', color: '#9ca3af'}}>Название:</span>
+                    <span style={{color: '#f3f4f6'}}>{displayData.name}</span>
+                  </div>
+                  {displayData.description && (
+                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                      <span style={{fontWeight: '500', color: '#9ca3af'}}>Описание:</span>
+                      <span style={{color: '#f3f4f6', textAlign: 'right', maxWidth: '60%'}}>{displayData.description}</span>
+                    </div>
+                  )}
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <span style={{fontWeight: '500', color: '#9ca3af'}}>Кандидатов:</span>
+                    <span style={{color: '#f3f4f6'}}>{displayData.candidates_count || 0}</span>
+                  </div>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <span style={{fontWeight: '500', color: '#9ca3af'}}>Создано:</span>
+                    <span style={{color: '#f3f4f6'}}>{formatMoscowDate(displayData.created_at)}</span>
+                  </div>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <span style={{fontWeight: '500', color: '#9ca3af'}}>Обновлено:</span>
+                    <span style={{color: '#f3f4f6'}}>{formatMoscowDate(displayData.updated_at)}</span>
+                  </div>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <span style={{fontWeight: '500', color: '#9ca3af'}}>ID вакансии:</span>
+                    <span style={{color: '#d1d5db', fontFamily: 'monospace', fontSize: '0.875rem'}}>{displayData.job_id}</span>
+                  </div>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <span style={{fontWeight: '500', color: '#9ca3af'}}>Статус:</span>
+                    <span style={{
+                      color: displayData.is_active ? '#10b981' : '#f87171',
+                      fontWeight: '500'
+                    }}>
+                      {displayData.is_active ? 'Активна' : 'Неактивна'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Список файлов (пока заглушка, так как в API нет информации о файлах) */}
+              <div>
+                <h3 style={{fontSize: '1.25rem', marginBottom: '1rem', color: '#f3f4f6'}}>Файлы кандидатов</h3>
+                {(folder.files && folder.files.length > 0) ? (
+                  <ul className="folder-card__list" style={{gap: '1rem'}}>
+                    {folder.files.map((file) => (
+                      <li key={file.id} className="folder-card__item" style={{padding: '1rem', borderRadius: '8px'}}>
+                        <div className="folder-card__file">
+                          <span className="folder-card__file-icon"><PdfIcon className="icon icon--small" /></span>
+                          <div className="folder-card__file-info">
+                            <p className="folder-card__file-name" style={{fontSize: '1.1rem', marginBottom: '0.5rem'}}>{file.name}</p>
+                            <span className="folder-card__file-meta">Загружено {file.uploaded}</span>
+                          </div>
+                        </div>
+                        <span className="folder-card__badge">PDF</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div style={{
+                    padding: '2rem',
+                    textAlign: 'center',
+                    backgroundColor: '#374151',
+                    borderRadius: '8px',
+                    border: '2px dashed #6b7280'
+                  }}>
+                    <PdfIcon className="icon" style={{fontSize: '2rem', color: '#9ca3af', marginBottom: '1rem'}} />
+                    <p style={{color: '#d1d5db', marginBottom: '0.5rem'}}>В папке пока нет файлов</p>
+                    <p style={{color: '#9ca3af', fontSize: '0.875rem'}}>Кандидаты будут появляться здесь после добавления в папку</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Модальное окно для создания папки
+function CreateFolderModal({ 
+  jobs, 
+  isLoadingJobs, 
+  newFolder, 
+  setNewFolder, 
+  isCreating, 
+  error, 
+  onSubmit, 
+  onClose 
+}) {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit();
+  };
+
+  const updateField = (field) => (e) => {
+    setNewFolder(prev => ({
+      ...prev,
+      [field]: e.target.value
+    }));
+  };
+
+  return (
+    <div className="modal" role="dialog" aria-modal="true" style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+      <div className="modal__backdrop" onClick={onClose} />
+      <div className="modal__dialog" role="document" style={{width: '90%', maxWidth: '500px', margin: '0 auto'}}>
         <header className="modal__header">
-          <h2 style={{fontSize: '1.5rem', marginBottom: '1rem'}}>Файлы папки: {folder.name}</h2>
+          <h2 style={{fontSize: '1.5rem', marginBottom: '1rem'}}>Создать новую папку</h2>
           <button className="icon-button icon-button--ghost modal__close" type="button" onClick={onClose}>
             <CloseIcon className="icon icon--small" />
           </button>
         </header>
-        <div className="modal__content" style={{maxHeight: '70vh', overflowY: 'auto', padding: '1.5rem'}}>
-          <ul className="folder-card__list" style={{gap: '1rem'}}>
-            {folder.files.map((file) => (
-              <li key={file.id} className="folder-card__item" style={{padding: '1rem', borderRadius: '8px'}}>
-                <div className="folder-card__file">
-                  <span className="folder-card__file-icon"><PdfIcon className="icon icon--small" /></span>
-                  <div className="folder-card__file-info">
-                    <p className="folder-card__file-name" style={{fontSize: '1.1rem', marginBottom: '0.5rem'}}>{file.name}</p>
-                    <span className="folder-card__file-meta">Загружено {file.uploaded}</span>
-                  </div>
+        <div className="modal__content" style={{padding: '1.5rem'}}>
+          <form onSubmit={handleSubmit}>
+            <div className="form-grid" style={{gap: '1rem'}}>
+              <label className="field">
+                <span className="field__label">Название папки *</span>
+                <input 
+                  className="field__input" 
+                  type="text" 
+                  value={newFolder.name}
+                  onChange={updateField('name')}
+                  placeholder="Введите название папки"
+                  required
+                />
+              </label>
+
+              <label className="field">
+                <span className="field__label">Описание</span>
+                <textarea 
+                  className="field__input" 
+                  rows={3}
+                  value={newFolder.description}
+                  onChange={updateField('description')}
+                  placeholder="Опишите папку (необязательно)"
+                />
+              </label>
+
+              <label className="field">
+                <span className="field__label">Вакансия *</span>
+                {isLoadingJobs ? (
+                  <div style={{padding: '0.5rem', color: '#6b7280'}}>Загрузка вакансий...</div>
+                ) : (
+                  <select 
+                    className="field__input"
+                    value={newFolder.job_id}
+                    onChange={updateField('job_id')}
+                    required
+                  >
+                    <option value="">Выберите вакансию</option>
+                    {jobs.map(job => (
+                      <option key={job.id} value={job.id}>
+                        {job.title} ({job.department || 'Без отдела'})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </label>
+
+              {error && (
+                <div style={{
+                  padding: '0.75rem',
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '6px',
+                  color: '#dc2626',
+                  fontSize: '0.875rem'
+                }}>
+                  {error}
                 </div>
-                <span className="folder-card__badge">PDF</span>
-              </li>
-            ))}
-          </ul>
+              )}
+
+              <div style={{display: 'flex', gap: '1rem', marginTop: '1rem'}}>
+                <button 
+                  className="btn btn-purple" 
+                  type="submit"
+                  disabled={isCreating || !newFolder.name.trim() || !newFolder.job_id}
+                >
+                  {isCreating ? 'Создание...' : 'Создать папку'}
+                </button>
+                <button 
+                  className="btn btn-ghost" 
+                  type="button" 
+                  onClick={onClose}
+                  disabled={isCreating}
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
     </div>
