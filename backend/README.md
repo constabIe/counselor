@@ -1,15 +1,24 @@
-# HR Counselor Backend
+# 🚀 HR Counselor Backend
 
-Backend API для системы анализа резюме и помощи HR-специалистам в подборе персонала.
+> Высокопроизводительный backend API для системы анализа резюме и автоматизации процессов подбора персонала с использованием ИИ.
+
+## ✨ Возможности
+
+- **Аутентификация и авторизация** - JWT токены, безопасная работа с пользователями
+- **Управление резюме** - загрузка, анализ и обработка CV с помощью ИИ
+- **Система вакансий** - создание, публикация и управление job positions
+- **Образовательная платформа** - курсы повышения квалификации и система опыта
+- **Система достижений** - badges и геймификация процесса обучения
+- **Организация данных** - папки для структурирования резюме и вакансий
 
 ## 🔧 Технологический стек
 
-![Python](https://img.shields.io/badge/Python-3.13+-3776AB?style=flat&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
+
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?style=flat&logo=postgresql&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-1f425f?style=flat&logo=sqlalchemy&logoColor=white)
-![Alembic](https://img.shields.io/badge/Alembic-663399?style=flat&logo=python&logoColor=white)
-![UV](https://img.shields.io/badge/UV-package_manager-yellow?style=flat)
+![Alembic](https://img.shields.io/badge/Alembic-migrations-663399?style=flat&logo=python&logoColor=white)
+![UV](https://img.shields.io/badge/UV-package_manager-yellow?style=flat&logo=python&logoColor=white)
+![AsyncPG](https://img.shields.io/badge/AsyncPG-async_driver-blue?style=flat)
+![Pydantic](https://img.shields.io/badge/Pydantic-validation-red?style=flat)
 
 ## 🚀 Быстрый старт
 
@@ -117,14 +126,45 @@ backend/
 - **PostgreSQL** как основную БД
 - **Alembic** для миграций
 - **SQLAlchemy** как ORM
+- **AsyncPG** для асинхронной работы с PostgreSQL
 
 ### Миграции
 
 ```bash
 # Создание новой миграции
-uv run alembic revision --autogenerate -m "описание изменений"
+uv run alembic revision --autogenerate -m "description"
 
 # Применение миграций
 uv run alembic upgrade head
+
+# Откат миграции
+uv run alembic downgrade -1
 ```
+
+## 🛠️ Разработка
+
+### Полезные скрипты
+
+```bash
+# Инициализация базы данных
+uv run python scripts/init_db.py
+
+# Заполнение тестовыми курсами
+uv run python scripts/populate_courses.py
+
+# Проверка состояния базы
+uv run python scripts/check_postgres.py
+
+# Тестирование системы badges
+uv run python scripts/test_badges.py
+```
+
+### Структура модулей
+
+Каждый модуль содержит:
+- `routes.py` - FastAPI роутеры и endpoints
+- `models.py` - SQLAlchemy модели
+- `schemas.py` - Pydantic схемы для валидации
+- `service.py` - бизнес-логика
+- `dependencies.py` - DI зависимости
 
