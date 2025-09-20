@@ -26,14 +26,50 @@ class CVOut(BaseModel):
     analysis_status: str = Field(..., description="Статус анализа")
     
     # Результаты анализа
+    skills: Optional[str] = Field(None, description="Навыки (JSON)")  
+    experience_years: Optional[int] = Field(None, description="Лет опыта")  
+    education: Optional[str] = Field(None, description="Образование (JSON)")  
+    additional_education: Optional[str] = Field(None, description="Курсы и сертификаты (JSON)")  
+    jobs: Optional[str] = Field(None, description="Предыдущие работы (JSON)")  
+    current_role: Optional[str] = Field(None, description="Текущая роль/должность (JSON)")  
+    responsibilities: Optional[str] = Field(None, description="Обязанности в текущей роли (JSON)")  
+    languages: Optional[str] = Field(None, description="Языки (JSON)")  
+    age: Optional[int] = Field(None, description="Возраст кандидата")  
+    department: Optional[str] = Field(None, description="Подразделение/направление")  
+    grade: Optional[str] = Field(None, description="Грейд (если есть)")  
+    specialization: Optional[str] = Field(None, description="Специализация (например, L1 Support)")  
+    competencies: Optional[str] = Field(None, description="Компетенции с уровнями (JSON)")  
+    comments: Optional[str] = Field(None, description="Дополнительное описание (свободный текст)")  
+    
+    # Метаданные от ИИ
+    rating: Optional[float] = Field(None, description="Рейтинг от ИИ (0-10)")  
+    tags: Optional[str] = Field(None, description="Специальные теги от ИИ (JSON)")  
+    career_path: Optional[str] = Field(None, description="Предлагаемая карьерная траектория (JSON)")
+
+
+class CVUpdate(BaseModel):
     skills: Optional[str] = Field(None, description="Навыки (JSON)")
     experience_years: Optional[int] = Field(None, description="Лет опыта")
     education: Optional[str] = Field(None, description="Образование (JSON)")
-    age: Optional[int] = Field(None, description="Возраст кандидата")
+    additional_education: Optional[str] = Field(None, description="Курсы и сертификаты (JSON)")
     jobs: Optional[str] = Field(None, description="Предыдущие работы (JSON)")
+    current_role: Optional[str] = Field(None, description="Текущая роль/должность (JSON)")
+    responsibilities: Optional[str] = Field(None, description="Обязанности в текущей роли (JSON)")
     languages: Optional[str] = Field(None, description="Языки (JSON)")
-    rating: Optional[float] = Field(None, description="Рейтинг от ИИ (0-10)")
-    tags: Optional[str] = Field(None, description="Специальные теги от ИИ (JSON)")
+    age: Optional[int] = Field(None, description="Возраст кандидата")
+    department: Optional[str] = Field(None, description="Подразделение/направление")
+    grade: Optional[str] = Field(None, description="Грейд (если есть)")
+    specialization: Optional[str] = Field(None, description="Специализация (например, L1 Support)")
+    competencies: Optional[str] = Field(None, description="Компетенции с уровнями (JSON)")
+    comments: Optional[str] = Field(None, description="Дополнительное описание (свободный текст)")
+    tags: Optional[str] = Field(None, description="Специальные теги (JSON)")
+    career_path: Optional[str] = Field(None, description="Предлагаемая карьерная траектория (JSON)")
+
+
+class CVUpdateResponse(BaseModel):
+    id: UUID = Field(..., description="ID CV")
+    rating: Optional[float] = Field(None, description="Обновленный рейтинг от ИИ (0-10)")
+    updated_fields: list[str] = Field(..., description="Список обновленных полей")
 
 
 class CVAnalysisResult(BaseModel):

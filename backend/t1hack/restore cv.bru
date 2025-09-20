@@ -4,14 +4,14 @@ meta {
   seq: 9
 }
 
-get {
-  url: http://localhost:8000/:cv_id/restore
+patch {
+  url: http://localhost:8000/cv/:cv_id/restore
   body: none
   auth: inherit
 }
 
 params:path {
-  cv_id: 
+  cv_id: 2254b7d1-ed76-47d0-8f85-6bf10e729c95
 }
 
 settings {
