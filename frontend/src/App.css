@@ -1134,6 +1134,19 @@
   color: var(--accent);
 }
 
+.folder-card__action--enrolled {
+  border-color: var(--green);
+  background: rgba(57, 243, 122, 0.12);
+  color: var(--green);
+}
+
+.folder-card__action--enrolled:hover {
+  border-color: var(--green);
+  background: rgba(57, 243, 122, 0.18);
+  transform: translateY(-1px);
+  color: var(--green);
+}
+
 .folder-card__list {
   margin: 0;
   padding: 16px 0 0;

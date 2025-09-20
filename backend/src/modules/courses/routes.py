@@ -26,6 +26,55 @@ router = APIRouter(
 
 
 @router.get(
+    "/my-enrollments",
+    response_model=UserEnrollmentsSummary,
+    summary="Мои записи на курсы",
+    description="Получает все записи текущего пользователя на курсы"
+)
+async def get_my_enrollments(
+    current_user: CurrentUserDep,
+    session: DbSessionDep,
+    status: Optional[EnrollmentStatus] = Query(None, description="Фильтр по статусу"),
+) -> UserEnrollmentsSummary:
+    """Получает записи пользователя на курсы"""
+    
+    # Получаем записи с информацией о курсах
+    enrollments_with_courses = await enrollment_repo.get_user_enrollments(
+        session, current_user.id, status
+    )
+    
+    # Получаем статистику по статусам
+    status_counts = await enrollment_repo.get_enrollment_counts_by_status(
+        session, current_user.id
+    )
+    
+    # Формируем список записей
+    enrollments = [
+        EnrollmentOut(
+            id=enrollment.id,
+            user_id=enrollment.user_id,
+            course_id=enrollment.course_id,
+            course_title=course.title,
+            course_direction=course.direction,
+            course_level=course.level,
+            course_duration_hours=course.duration_hours,
+            status=enrollment.status,
+            enrolled_at=enrollment.enrolled_at,
+            started_at=enrollment.started_at,
+        )
+        for enrollment, course in enrollments_with_courses
+    ]
+    
+    return UserEnrollmentsSummary(
+        enrollments=enrollments,
+        total_count=len(enrollments),
+        enrolled_count=status_counts["enrolled"],
+        started_count=status_counts["started"],
+        completed_count=status_counts["completed"],
+    )
+
+
+@router.get(
     "/",
     response_model=List[CourseOut],
     summary="Получить все курсы",
@@ -306,55 +355,6 @@ async def enroll_to_course(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-
-
-@router.get(
-    "/my-enrollments",
-    response_model=UserEnrollmentsSummary,
-    summary="Мои записи на курсы",
-    description="Получает все записи текущего пользователя на курсы"
-)
-async def get_my_enrollments(
-    current_user: CurrentUserDep,
-    session: DbSessionDep,
-    status: Optional[EnrollmentStatus] = Query(None, description="Фильтр по статусу"),
-) -> UserEnrollmentsSummary:
-    """Получает записи пользователя на курсы"""
-    
-    # Получаем записи с информацией о курсах
-    enrollments_with_courses = await enrollment_repo.get_user_enrollments(
-        session, current_user.id, status
-    )
-    
-    # Получаем статистику по статусам
-    status_counts = await enrollment_repo.get_enrollment_counts_by_status(
-        session, current_user.id
-    )
-    
-    # Формируем список записей
-    enrollments = [
-        EnrollmentOut(
-            id=enrollment.id,
-            user_id=enrollment.user_id,
-            course_id=enrollment.course_id,
-            course_title=course.title,
-            course_direction=course.direction,
-            course_level=course.level,
-            course_duration_hours=course.duration_hours,
-            status=enrollment.status,
-            enrolled_at=enrollment.enrolled_at,
-            started_at=enrollment.started_at,
-        )
-        for enrollment, course in enrollments_with_courses
-    ]
-    
-    return UserEnrollmentsSummary(
-        enrollments=enrollments,
-        total_count=len(enrollments),
-        enrolled_count=status_counts["enrolled"],
-        started_count=status_counts["started"],
-        completed_count=status_counts["completed"],
-    )
 
 
 @router.patch(

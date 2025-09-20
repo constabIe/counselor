@@ -1004,7 +1004,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
     return levelLabels[level] || level;
   };
 
-  const [activeTab, setActiveTab] = React.useState('opportunities')
+  const [activeTab, setActiveTab] = React.useState('personal_assistant')
   const [editMode, setEditMode] = React.useState(false)
   const [currentCv, setCurrentCv] = React.useState(null)
   const [isLoadingCv, setIsLoadingCv] = React.useState(true)
@@ -1189,8 +1189,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
   // Функция для загрузки моих записей на курсы
   const loadMyEnrollments = async () => {
     try {
-      const enrollments = await api.getMyEnrollments(token);
-      setMyEnrollments(enrollments || []);
+      const response = await api.getMyEnrollments(token);
+      // API возвращает объект UserEnrollmentsSummary с полем enrollments
+      setMyEnrollments(response?.enrollments || []);
     } catch (error) {
       console.error('Ошибка загрузки записей на курсы:', error);
       setMyEnrollments([]);
@@ -1764,18 +1765,14 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
                       {c.description && (
                         <div className="course-description">{c.description}</div>
                       )}
-                      {isEnrolledInCourse(c.id) && (
-                        <div className="course-enrolled-badge">
-                          ✅ Вы записаны
-                        </div>
-                      )}
+                      
                     </div>
                     <button 
-                      className="folder-card__action" 
+                      className={`folder-card__action ${isEnrolledInCourse(c.id) ? 'folder-card__action--enrolled' : ''}`}
                       type="button" 
                       onClick={() => handleCourseClick(c)}
                     >
-                      {isEnrolledInCourse(c.id) ? 'Посмотреть курс' : 'Выбрать курс'}
+                      {isEnrolledInCourse(c.id) ? 'Записаны' : 'Выбрать курс'}
                     </button>
                   </article>
                 )
