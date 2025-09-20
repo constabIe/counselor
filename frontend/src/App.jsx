@@ -1481,22 +1481,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
                   <p className="job-card__company">{job.department}</p>
                   <div className="job-card__meta">
                     <span className="job-card__level">{getJobLevelLabel(job.level)}</span>
-                    <span className="job-card__location">
-                      {job.location || 'Не указано'} {job.remote_available && '• Удаленно'}
-                    </span>
-                    {job.average_salary && (
-                      <span className="job-card__salary">
-                        {new Intl.NumberFormat('ru-RU').format(job.average_salary)} {job.salary_currency}
-                      </span>
-                    )}
-                  </div>
-                  <div className="job-card__description">
-                    <p>{job.description}</p>
-                  </div>
-                  <div className="job-card__tags">
-                    {job.required_skills && job.required_skills.map((skill) => (
-                      <span key={skill} className="tag">{skill}</span>
-                    ))}
                   </div>
                   <button className="btn btn-outline job-card__action" type="button">
                     Откликнуться
