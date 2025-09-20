@@ -1,4 +1,4 @@
-name: deploy-
+name: deploy
 "on":
   push:
     branches:
@@ -6,4 +6,6 @@ name: deploy-
   pull_request:
     branches:
       - main
+      
+
       
