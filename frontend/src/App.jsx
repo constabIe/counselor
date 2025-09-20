@@ -1241,10 +1241,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
                 {isLoadingCv ? (
                   <span className="profile-card__metric-value">Загрузка...</span>
                 ) : currentCv && currentCv.rating ? (
-                  <>
-                    <RatingStars value={parseFloat(currentCv.rating)} />
-                    <span className="profile-card__metric-value">{parseFloat(currentCv.rating).toFixed(1)}</span>
-                  </>
+                  <span className="profile-card__metric-value">{parseFloat(currentCv.rating).toFixed(1)}</span>
                 ) : (
                   <span className="profile-card__metric-value">Нет данных</span>
                 )}
