@@ -1411,6 +1411,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
         <button type="button" className={`tabs__btn ${activeTab === 'data' ? 'is-active' : ''}`} onClick={() => setActiveTab('data')}>Данные</button>
         <button type="button" className={`tabs__btn ${activeTab === 'opportunities' ? 'is-active' : ''}`} onClick={() => setActiveTab('opportunities')}>Карьерные возможности</button>
         <button type="button" className={`tabs__btn ${activeTab === 'courses' ? 'is-active' : ''}`} onClick={() => setActiveTab('courses')}>Курсы</button>
+        <button type="button" className={`tabs__btn ${activeTab === 'store' ? 'is-active' : ''}`} onClick={() => setActiveTab('store')}>Магазин</button>
       </nav>
 
       {activeTab === 'personal_assistant' && (
@@ -1858,6 +1859,69 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
             )}
           </div>
         </div>
+      )}
+
+      {activeTab === 'store' && (
+        <section className="panel">
+          <h3>Корпоративный магазин</h3>
+          <div className="store-grid">
+            <div className="store-item">
+              <h4>Носки с логотипом</h4>
+              <p className="store-item-description">Удобные носки с корпоративным логотипом компании</p>
+              <div className="store-item-price">500 XP</div>
+              <button className="btn btn-primary">Заказать</button>
+            </div>
+            
+            <div className="store-item">
+              <h4>Футболка компании</h4>
+              <p className="store-item-description">Качественная футболка с фирменным дизайном</p>
+              <div className="store-item-price">1200 XP</div>
+              <button className="btn btn-primary">Заказать</button>
+            </div>
+            
+            <div className="store-item">
+              <h4>Кружка с логотипом</h4>
+              <p className="store-item-description">Керамическая кружка для кофе и чая</p>
+              <div className="store-item-price">800 XP</div>
+              <button className="btn btn-primary">Заказать</button>
+            </div>
+            
+            <div className="store-item">
+              <h4>Оплата питания</h4>
+              <p className="store-item-description">Пополнение баланса для оплаты в корпоративной столовой</p>
+              <div className="store-item-price">от 1000 XP</div>
+              <button className="btn btn-primary">Пополнить</button>
+            </div>
+            
+            <div className="store-item">
+              <h4>Сертификат Wildberries</h4>
+              <p className="store-item-description">Подарочный сертификат на покупки в Wildberries</p>
+              <div className="store-item-price">3000 XP</div>
+              <button className="btn btn-primary">Заказать</button>
+            </div>
+            
+            <div className="store-item">
+              <h4>Сертификат Ozon</h4>
+              <p className="store-item-description">Подарочный сертификат на покупки в Ozon</p>
+              <div className="store-item-price">2500 XP</div>
+              <button className="btn btn-primary">Заказать</button>
+            </div>
+            
+            <div className="store-item">
+              <h4>Сертификат Пятёрочка</h4>
+              <p className="store-item-description">Подарочная карта для покупок продуктов</p>
+              <div className="store-item-price">2000 XP</div>
+              <button className="btn btn-primary">Заказать</button>
+            </div>
+            
+            <div className="store-item">
+              <h4>Сертификат развлечений</h4>
+              <p className="store-item-description">Сертификат на посещение кинотеатров и развлекательных центров</p>
+              <div className="store-item-price">1500 XP</div>
+              <button className="btn btn-primary">Заказать</button>
+            </div>
+          </div>
+        </section>
       )}
     </div>
   )
