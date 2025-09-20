@@ -971,12 +971,21 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
   const [editMode, setEditMode] = React.useState(false)
   const [currentCv, setCurrentCv] = React.useState(null)
   const [isLoadingCv, setIsLoadingCv] = React.useState(true)
+  const [courses, setCourses] = React.useState([])
+  const [isLoadingCourses, setIsLoadingCourses] = React.useState(false)
+  const [selectedCourse, setSelectedCourse] = React.useState(null)
+  const [isLoadingCourseDetails, setIsLoadingCourseDetails] = React.useState(false)
+  const [isEnrolling, setIsEnrolling] = React.useState(false)
+  const [enrollmentMessage, setEnrollmentMessage] = React.useState('')
+  const [myEnrollments, setMyEnrollments] = React.useState([])
   const [token] = React.useState(localStorage.getItem('token'))
 
   // Загружаем информацию о CV при монтировании компонента
   React.useEffect(() => {
     if (token) {
       loadCvInfo();
+      loadCourses();
+      loadMyEnrollments();
     }
   }, [token]);
 
@@ -995,6 +1004,117 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
     } finally {
       setIsLoadingCv(false);
     }
+  };
+
+  // Функция для безопасного парсинга JSON полей
+  const parseJsonField = (field, defaultValue = 'Не указано') => {
+    if (!currentCv || !currentCv[field]) return defaultValue;
+    
+    const value = currentCv[field];
+    if (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{'))) {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => {
+            if (typeof item === 'object') {
+              return Object.entries(item)
+                .filter(([key, val]) => val && val !== '')
+                .map(([key, val]) => `${key}: ${val}`)
+                .join(', ');
+            }
+            return String(item);
+          }).join('; ');
+        } else if (typeof parsed === 'object') {
+          return Object.entries(parsed)
+            .filter(([key, val]) => val && val !== '')
+            .map(([key, val]) => `${key}: ${val}`)
+            .join(', ');
+        }
+        return String(parsed);
+      } catch (e) {
+        return value;
+      }
+    }
+    return value || defaultValue;
+  };
+
+  // Функция для получения простых полей
+  const getCvValue = (field, defaultValue = 'Не указано') => {
+    if (!currentCv) return defaultValue;
+    return currentCv[field] || defaultValue;
+  };
+
+  // Функция для загрузки курсов
+  const loadCourses = async () => {
+    try {
+      setIsLoadingCourses(true);
+      const coursesData = await api.getCourses(token);
+      setCourses(coursesData || []);
+    } catch (error) {
+      console.error('Ошибка загрузки курсов:', error);
+      setCourses([]);
+    } finally {
+      setIsLoadingCourses(false);
+    }
+  };
+
+  // Функция для загрузки моих записей на курсы
+  const loadMyEnrollments = async () => {
+    try {
+      const enrollments = await api.getMyEnrollments(token);
+      setMyEnrollments(enrollments || []);
+    } catch (error) {
+      console.error('Ошибка загрузки записей на курсы:', error);
+      setMyEnrollments([]);
+    }
+  };
+
+  // Функция для проверки записи на курс
+  const isEnrolledInCourse = (courseId) => {
+    return myEnrollments.some(enrollment => enrollment.course_id === courseId);
+  };
+
+  // Функция для обработки клика по курсу
+  const handleCourseClick = async (course) => {
+    try {
+      setIsLoadingCourseDetails(true);
+      setEnrollmentMessage('');
+      const courseDetails = await api.getCourseById(token, course.id);
+      setSelectedCourse(courseDetails);
+    } catch (error) {
+      console.error('Ошибка загрузки деталей курса:', error);
+      setEnrollmentMessage('Ошибка при загрузке информации о курсе');
+    } finally {
+      setIsLoadingCourseDetails(false);
+    }
+  };
+
+  // Функция для записи на курс
+  const handleEnrollInCourse = async () => {
+    if (!selectedCourse) return;
+    
+    try {
+      setIsEnrolling(true);
+      setEnrollmentMessage('');
+      await api.enrollInCourse(token, selectedCourse.id);
+      await loadMyEnrollments(); // Перезагружаем список записей
+      setEnrollmentMessage('Вы успешно записались на курс!');
+      setTimeout(() => {
+        setSelectedCourse(null);
+        setEnrollmentMessage('');
+      }, 2000);
+    } catch (error) {
+      console.error('Ошибка записи на курс:', error);
+      setEnrollmentMessage(error.message || 'Ошибка при записи на курс');
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
+
+  // Функция для закрытия модального окна курса
+  const handleCloseCourseModal = () => {
+    setSelectedCourse(null);
+    setEnrollmentMessage('');
   };
 
   const [form, setForm] = React.useState({
@@ -1029,10 +1149,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
     { id: 'j1', title: 'Frontend Junior', company: 'TechNova', tags: ['React', 'JS', 'HTML/CSS'] },
     { id: 'j2', title: 'Data Analyst', company: 'DataWise', tags: ['SQL', 'Python', 'BI'] },
     { id: 'j3', title: 'QA Engineer', company: 'QualityLab', tags: ['Manual', 'API', 'Postman'] },
-  ]
-
-  const courses = [
-    { id: 'c1', title: 'Продвинутые HR‑технологии', provider: 'Coursera', url: 'https://coursera.org', direction: 'HR', level: 'Advanced', duration: 56, description: 'Современные HR‑инструменты: People Analytics, автоматизация подбора, HRIS.' },{ id: 'c2', title: 'React: продвинутые паттерны', provider: 'Udemy', url: 'https://udemy.com', direction: 'Frontend', level: 'Intermediate', duration: 24, description: 'Хуки, контекст, оптимизация производительности, архитектура компонентов.' },{ id: 'c3', title: 'Data Analysis с Python', provider: 'Stepik', url: 'https://stepik.org', direction: 'Data', level: 'Beginner', duration: 36, description: 'Pandas, визуализация, базовый SQL, подготовка данных.' },
   ]
 
   const roadmap = [
@@ -1141,102 +1257,135 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
 
       {activeTab === 'data' && (
         <section className="panel">
-          <SubCard title="Образование" render={(edit) => (
-            <div className="form-grid">
-              <EditableField label="Название учебного заведения" value={form.institution} onChange={set('institution')} edit={edit} />
-              <EditableField label="Уровень образования" value={form.educationLevel} onChange={set('educationLevel')} edit={edit} />
-              <EditableField label="Специальность" value={form.specialty} onChange={set('specialty')} edit={edit} />
-              <EditableField label="Год окончания" value={form.graduationYear} onChange={set('graduationYear')} edit={edit} />
+          {isLoadingCv ? (
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+              <p>Загружаем данные из CV...</p>
             </div>
-          )} />
+          ) : !currentCv ? (
+            <div className="empty-state">
+              <p>Нет загруженного CV. Загрузите резюме для просмотра данных.</p>
+              <button className="btn btn-green" onClick={onReupload}>Загрузить CV</button>
+            </div>
+          ) : (
+            <>
+              <SubCard title="Личная информация" render={(edit) => (
+                <div className="form-grid">
+                  <EditableField label="Возраст" value={getCvValue('age', 'Не указан')} onChange={() => {}} edit={false} />
+                  <EditableField label="Опыт работы" value={getCvValue('experience_years') ? `${getCvValue('experience_years')} лет` : 'Не указан'} onChange={() => {}} edit={false} />
+                  <EditableField label="Подразделение" value={getCvValue('department')} onChange={() => {}} edit={false} />
+                  <EditableField label="Грейд" value={getCvValue('grade')} onChange={() => {}} edit={false} />
+                  <EditableField label="Специализация" value={getCvValue('specialization')} onChange={() => {}} edit={false} />
+                </div>
+              )} />
 
-          <SubCard title="Дополнительное образование" render={(edit) => (
-            <div className="form-grid">
-              <EditableField label="Название" value={form.addEduName} onChange={set('addEduName')} edit={edit} />
-              <EditableField label="Компания" value={form.addEduCompany} onChange={set('addEduCompany')} edit={edit} />
-              <EditableField label="Дата выдачи" value={form.addEduDate} onChange={set('addEduDate')} edit={edit} />
-              <EditableField label="Кол-во акад. часов" value={form.addEduHours} onChange={set('addEduHours')} edit={edit} />
-            </div>
-          )} />
+              <SubCard title="Образование" render={(edit) => (
+                <div className="form-grid">
+                  <EditableField label="Образование" value={parseJsonField('education')} onChange={() => {}} edit={false} />
+                  <EditableField label="Дополнительное образование" value={parseJsonField('additional_education')} onChange={() => {}} edit={false} />
+                </div>
+              )} />
 
-          <SubCard title="Текущие роли" render={(edit) => (
-            <div className="form-grid">
-              <EditableField label="Должность" value={form.currentPosition} onChange={set('currentPosition')} edit={edit} />
-              <EditableField label="Опыт работы" value={form.experienceText} onChange={set('experienceText')} edit={edit} />
-              <EditableField label="Функциональная роль" value={form.functionalRole} onChange={set('functionalRole')} edit={edit} />
-              <EditableField label="Командная роль" value={form.teamRole} onChange={set('teamRole')} edit={edit} />
-              <EditableField label="Функционал" value={form.functionDesc} onChange={set('functionDesc')} edit={edit} multiline />
-            </div>
-          )} />
+              <SubCard title="Текущая роль" render={(edit) => (
+                <div className="form-grid">
+                  <EditableField label="Текущая должность" value={parseJsonField('current_role')} onChange={() => {}} edit={false} />
+                  <EditableField label="Обязанности" value={parseJsonField('responsibilities')} onChange={() => {}} edit={false} />
+                </div>
+              )} />
 
-          <SubCard title="Дополнительная роль" render={(edit) => (
-            <div className="form-grid">
-              <EditableField label="Роль" value={form.extraRole} onChange={set('extraRole')} edit={edit} />
-              <EditableField label="Специализация" value={form.extraRoleSpec} onChange={set('extraRoleSpec')} edit={edit} />
-            </div>
-          )} />
+              <SubCard title="Навыки и компетенции" render={(edit) => (
+                <div className="form-grid">
+                  <EditableField label="Навыки" value={parseJsonField('skills')} onChange={() => {}} edit={false} />
+                  <EditableField label="Компетенции" value={parseJsonField('competencies')} onChange={() => {}} edit={false} />
+                  <EditableField label="Языки" value={parseJsonField('languages')} onChange={() => {}} edit={false} />
+                </div>
+              )} />
 
-          <SubCard title="Знания и навыки" render={(edit) => (
-            <div className="form-grid">
-              <EditableField label="Иностранные языки" value={form.languages} onChange={set('languages')} edit={edit} />
-              <EditableField label="Прочие компетенции" value={form.otherSkills} onChange={set('otherSkills')} edit={edit} />
-              <EditableField label="Языки программирования" value={form.programming} onChange={set('programming')} edit={edit} />
-            </div>
-          )} />
+              <SubCard title="Опыт работы" render={(edit) => (
+                <div className="form-grid">
+                  <EditableField label="Предыдущие места работы" value={parseJsonField('jobs')} onChange={() => {}} edit={false} />
+                </div>
+              )} />
 
-          <SubCard title="Предыдущий опыт работы" render={(edit) => (
-            <div className="form-grid">
-              <EditableField label="Роль/Должность" value={form.prevRole} onChange={set('prevRole')} edit={edit} />
-              <EditableField label="Место работы" value={form.prevCompany} onChange={set('prevCompany')} edit={edit} />
-              <EditableField label="Период работы" value={form.prevPeriod} onChange={set('prevPeriod')} edit={edit} />
-              <EditableField label="Обязанности" value={form.prevDuties} onChange={set('prevDuties')} edit={edit} multiline />
-            </div>
-          )} />
+              <SubCard title="Дополнительная информация" render={(edit) => (
+                <div className="form-grid">
+                  <EditableField label="Комментарии" value={getCvValue('comments')} onChange={() => {}} edit={false} />
+                  <EditableField label="Рейтинг" value={getCvValue('rating') ? `${getCvValue('rating')}/10` : 'Не оценен'} onChange={() => {}} edit={false} />
+                  <EditableField label="Теги" value={parseJsonField('tags')} onChange={() => {}} edit={false} />
+                  <EditableField label="Карьерный путь" value={parseJsonField('career_path')} onChange={() => {}} edit={false} />
+                </div>
+              )} />
 
-          <SubCard title="Дополнительная информация" render={(edit) => (
-            <div className="form-grid">
-              <EditableField label="Портфолио (ссылки)" value={form.portfolio} onChange={set('portfolio')} edit={edit} />
-              <EditableField label="О себе" value={form.about} onChange={set('about')} edit={edit} multiline />
-            </div>
-          )} />
-
-          <SubCard title="Результаты тестирования" render={(edit) => (
-            <div className="form-grid">
-              <EditableField label="Технические компетенции" value={form.testResults} onChange={set('testResults')} edit={edit} />
-            </div>
-          )} />
+              <SubCard title="Статус анализа" render={(edit) => (
+                <div className="form-grid">
+                  <EditableField label="Статус обработки" value={getCvValue('analysis_status', 'Ожидает анализа')} onChange={() => {}} edit={false} />
+                </div>
+              )} />
+            </>
+          )}
         </section>
       )}
 
       {activeTab === 'courses' && (
         <section className="panel">
           <h3>Рекомендуемые курсы</h3>
-          <div className="hr-dashboard__grid">
-            {courses.map((c) => {
-              const accent = {
-                HR: '#5eead4',
-                Frontend: '#a855f7',
-                Data: '#f97316',
-                Other: '#38bdf8',
-              }[c.direction] || '#bef264'
-              
-              return (
-                <article key={c.id} className="folder-card" style={{ '--accent': accent }}>
-                  <div className="folder-card__icon">
-                    <span className="folder-card__badge">{c.level}</span>
-                  </div>
-                  <div className="folder-card__body">
-                    <h2>{c.title}</h2>
-                    <p>{c.provider}</p>
-                    <span className="folder-card__meta">{c.duration} академических часов</span>
-                  </div>
-                  <button className="folder-card__action" type="button" onClick={() => window.open(c.url, '_blank')}>
-                    Открыть курс
-                  </button>
-                </article>
-              )
-            })}
-          </div>
+          {isLoadingCourses ? (
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+              <p>Загружаем курсы...</p>
+            </div>
+          ) : courses.length === 0 ? (
+            <div className="empty-state">
+              <p>Курсы не найдены</p>
+            </div>
+          ) : (
+            <div className="hr-dashboard__grid">
+              {courses.map((c) => {
+                const accent = {
+                  'HR': '#5eead4',
+                  'Frontend': '#a855f7',
+                  'Data': '#f97316',
+                  'IT': '#38bdf8',
+                  'Marketing': '#f59e0b',
+                  'Design': '#ec4899',
+                }[c.direction] || '#bef264'
+
+                const levelLabels = {
+                  'beginner': 'Начальный',
+                  'intermediate': 'Средний', 
+                  'advanced': 'Продвинутый'
+                }
+                
+                return (
+                  <article key={c.id} className="folder-card course-card" style={{ '--accent': accent }}>
+                    <div className="folder-card__icon">
+                      <span className="folder-card__badge">{levelLabels[c.level] || c.level}</span>
+                    </div>
+                    <div className="folder-card__body">
+                      <h2>{c.title}</h2>
+                      <p>{c.direction}</p>
+                      <span className="folder-card__meta">{c.duration_hours} академических часов</span>
+                      {c.description && (
+                        <div className="course-description">{c.description}</div>
+                      )}
+                      {isEnrolledInCourse(c.id) && (
+                        <div className="course-enrolled-badge">
+                          ✅ Вы записаны
+                        </div>
+                      )}
+                    </div>
+                    <button 
+                      className="folder-card__action" 
+                      type="button" 
+                      onClick={() => handleCourseClick(c)}
+                    >
+                      {isEnrolledInCourse(c.id) ? 'Посмотреть курс' : 'Выбрать курс'}
+                    </button>
+                  </article>
+                )
+              })}
+            </div>
+          )}
           <h3>Роадмап</h3>
           <ul className="list">
             {roadmap.map((r, i) => (
@@ -1244,6 +1393,94 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
             ))}
           </ul>
         </section>
+      )}
+
+      {/* Модальное окно с подробной информацией о курсе */}
+      {selectedCourse && (
+        <div className="modal-overlay" onClick={handleCloseCourseModal}>
+          <div className="modal-content course-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="icon-button icon-button--ghost modal-close" onClick={handleCloseCourseModal}>
+              <CloseIcon className="icon icon--small" />
+            </button>
+            
+            {isLoadingCourseDetails ? (
+              <div className="loading-state">
+                <div className="loading-spinner"></div>
+                <p>Загружаем информацию о курсе...</p>
+              </div>
+            ) : (
+              <>
+                <header className="course-modal__header">
+                  <h2>{selectedCourse.title}</h2>
+                  <div className="course-modal__meta">
+                    <span className={`course-badge course-badge--${selectedCourse.level}`}>
+                      {selectedCourse.level === 'beginner' && 'Начальный'}
+                      {selectedCourse.level === 'intermediate' && 'Средний'}
+                      {selectedCourse.level === 'advanced' && 'Продвинутый'}
+                    </span>
+                    <span className="course-direction">{selectedCourse.direction}</span>
+                  </div>
+                </header>
+
+                <div className="course-modal__body">
+                  <div className="course-info">
+                    <div className="course-info__item">
+                      <span className="course-info__label">Длительность:</span>
+                      <span className="course-info__value">{selectedCourse.duration_hours} академических часов</span>
+                    </div>
+                    {selectedCourse.created_at && (
+                      <div className="course-info__item">
+                        <span className="course-info__label">Дата создания:</span>
+                        <span className="course-info__value">
+                          {new Date(selectedCourse.created_at).toLocaleDateString('ru-RU')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedCourse.description && (
+                    <div className="course-description-full">
+                      <h3>Описание курса</h3>
+                      <p>{selectedCourse.description}</p>
+                    </div>
+                  )}
+
+                  {enrollmentMessage && (
+                    <div className={`enrollment-message ${enrollmentMessage.includes('успешно') ? 'enrollment-message--success' : 'enrollment-message--error'}`}>
+                      {enrollmentMessage}
+                    </div>
+                  )}
+                </div>
+
+                <footer className="course-modal__footer">
+                  <button 
+                    className="btn btn-ghost" 
+                    onClick={handleCloseCourseModal}
+                    disabled={isEnrolling}
+                  >
+                    Закрыть
+                  </button>
+                  {isEnrolledInCourse(selectedCourse.id) ? (
+                    <button 
+                      className="btn btn-green" 
+                      disabled={true}
+                    >
+                      Вы уже записаны на курс
+                    </button>
+                  ) : (
+                    <button 
+                      className="btn btn-green" 
+                      onClick={handleEnrollInCourse}
+                      disabled={isEnrolling}
+                    >
+                      {isEnrolling ? 'Записываемся...' : 'Записаться на курс'}
+                    </button>
+                  )}
+                </footer>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )

@@ -93,5 +93,56 @@ export const api = {
       await parseError(response);
     }
     return response.blob();
+  },
+
+  async getCourses(token) {
+    const response = await fetch(`${API_URL}/courses/`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
+  },
+
+  async getCourseById(token, courseId) {
+    const response = await fetch(`${API_URL}/courses/${courseId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
+  },
+
+  async enrollInCourse(token, courseId) {
+    const response = await fetch(`${API_URL}/courses/enroll/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ course_id: courseId }),
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
+  },
+
+  async getMyEnrollments(token) {
+    const response = await fetch(`${API_URL}/courses/my-enrollments/`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
   }
 };
