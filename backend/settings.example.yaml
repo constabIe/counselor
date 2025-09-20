@@ -1,7 +1,0 @@
-app_root_path: ""
-db_url: "postgresql+asyncpg://postgres:postgres@localhost:5432/db_name"
-jwt_secret_key: "secret-key"
-jwt_algorithm: "HS256"
-jwt_expiration_hours: 24
-cors_allow_origin_regex: ".*"
-environment: "development"

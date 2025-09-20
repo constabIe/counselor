@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react'
+import React, { useState } from 'react'
 import './App.css'
 
 // Компонент для показа уведомлений о начислении XP

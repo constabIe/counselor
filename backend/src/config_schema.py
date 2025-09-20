@@ -1,11 +1,12 @@
 from enum import StrEnum
 from pathlib import Path
 from typing import Optional
+from dotenv import dotenv_values
 
-try:
-    import yaml
-except ImportError:
-    yaml = None
+# try:
+#     import yaml
+# except ImportError:
+#     yaml = None
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
@@ -16,7 +17,7 @@ class Environment(StrEnum):
 
 
 class SettingBaseModel(BaseModel):
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="ignore")
 
 
 class Settings(SettingBaseModel):
@@ -50,18 +51,34 @@ class Settings(SettingBaseModel):
     # Environment
     environment: Environment = Environment.DEVELOPMENT
 
+    # @classmethod
+    # def from_yaml(cls, path: Path) -> "Settings":
+    #     if yaml is None:
+    #         raise ImportError("PyYAML is required for YAML configuration")
+    #     with open(path) as f:
+    #         yaml_config = yaml.safe_load(f)
+    #     return cls.model_validate(yaml_config)
+
+    # @classmethod
+    # def save_schema(cls, path: Path) -> None:
+    #     if yaml is None:
+    #         raise ImportError("PyYAML is required for YAML configuration")
+    #     with open(path, "w") as f:
+    #         schema = {"$schema": "https://json-schema.org/draft-07/schema", **cls.model_json_schema()}
+    #         yaml.dump(schema, f, sort_keys=False)
+            
     @classmethod
-    def from_yaml(cls, path: Path) -> "Settings":
-        if yaml is None:
-            raise ImportError("PyYAML is required for YAML configuration")
-        with open(path) as f:
-            yaml_config = yaml.safe_load(f)
-        return cls.model_validate(yaml_config)
+    def from_env(cls, path: Path) -> "Settings":
+        """Загрузка конфигурации из .env файла"""
+        if not path.exists():
+            raise FileNotFoundError(f".env файл не найден: {path}")
+        env_config = dotenv_values(path)
+        return cls.model_validate(env_config)
 
     @classmethod
     def save_schema(cls, path: Path) -> None:
-        if yaml is None:
-            raise ImportError("PyYAML is required for YAML configuration")
-        with open(path, "w") as f:
-            schema = {"$schema": "https://json-schema.org/draft-07/schema", **cls.model_json_schema()}
-            yaml.dump(schema, f, sort_keys=False)
+        """Сохранение JSON-схемы настроек (для документации)"""
+        schema = {"$schema": "https://json-schema.org/draft-07/schema", **cls.model_json_schema()}
+        with open(path, "w", encoding="utf-8") as f:
+            import json
+            json.dump(schema, f, ensure_ascii=False, indent=2)
