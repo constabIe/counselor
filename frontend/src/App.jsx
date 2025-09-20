@@ -334,7 +334,6 @@ function LandingPage({ onStart }) {
   return (
     <div className="landing">
       <header className="landing__header">
-        <span className="brand brand--accent">HR-АССИСТЕНТ</span>
         <button
           className="icon-button"
           type="button"
@@ -350,7 +349,7 @@ function LandingPage({ onStart }) {
           <p className="landing__eyebrow">HR-Ассистент</p>
           <h1 className="landing__title">
             <span className="landing__title-highlight">AI-powered</span>
-            <span>HR assistant</span>
+            <span>HR-counselor</span>
           </h1>
           <p className="landing__subtitle">
             Оптимизируйте процесс найма с нашим интеллектуальным HR-ассистентом.
@@ -987,11 +986,23 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
   const [enrollmentMessage, setEnrollmentMessage] = React.useState('')
   const [myEnrollments, setMyEnrollments] = React.useState([])
   const [token] = React.useState(localStorage.getItem('token'))
+  
+  // Состояния для профиля пользователя
+  const [userProfile, setUserProfile] = React.useState(null)
+  const [isLoadingProfile, setIsLoadingProfile] = React.useState(true)
+  
+  // Состояния для личного помощника
+  const [assistantMessages, setAssistantMessages] = React.useState([
+    { from: 'bot', text: 'Привет! Я ваш личный помощник. Помогу с карьерными вопросами, анализом резюме и планированием развития. Что вас интересует?' }
+  ])
+  const [assistantInput, setAssistantInput] = React.useState('')
+  const [completedTasks, setCompletedTasks] = React.useState([])
 
-  // Загружаем информацию о CV при монтировании компонента
+  // Загружаем информацию о CV и профиле при монтировании компонента
   React.useEffect(() => {
     if (token) {
       loadCvInfo();
+      loadUserProfile();
       loadCourses();
       loadMyEnrollments();
     }
@@ -1011,6 +1022,19 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
       setCurrentCv(null);
     } finally {
       setIsLoadingCv(false);
+    }
+  };
+
+  const loadUserProfile = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const profile = await api.getUserProfile(token);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Ошибка загрузки профиля пользователя:', error);
+      setUserProfile(null);
+    } finally {
+      setIsLoadingProfile(false);
     }
   };
 
@@ -1167,6 +1191,36 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
 
   const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
+  // Функции для личного помощника
+  const sendAssistantMessage = () => {
+    const text = assistantInput.trim()
+    if (!text) return
+    
+    setAssistantMessages(prev => [...prev, { from: 'user', text }])
+    setAssistantInput('')
+    
+    // Имитация ответа бота (заглушка)
+    setTimeout(() => {
+      const botResponses = [
+        'Интересный вопрос! Давайте разберем это подробнее.',
+        'Я анализирую ваш запрос. Вот что я могу предложить...',
+        'Основываясь на вашем профиле, рекомендую следующее:',
+        'Хороший вопрос! Это поможет в вашем карьерном развитии.',
+        'Давайте составим план действий по вашему запросу.'
+      ]
+      const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)]
+      setAssistantMessages(prev => [...prev, { from: 'bot', text: randomResponse }])
+    }, 1000)
+  }
+
+  const toggleTaskCompletion = (taskId) => {
+    setCompletedTasks(prev => 
+      prev.includes(taskId) 
+        ? prev.filter(id => id !== taskId)
+        : [...prev, taskId]
+    )
+  }
+
   return (
     <div className="employee-dashboard">
       <header className="dashboard-header">
@@ -1184,12 +1238,26 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
             <div className="profile-card__metrics">
               <div className="profile-card__metric">
                 <span className="profile-card__metric-label">Рейтинг:</span>
-                <RatingStars value={data.rating} />
-                <span className="profile-card__metric-value">{data.rating.toFixed(1)}</span>
+                {isLoadingCv ? (
+                  <span className="profile-card__metric-value">Загрузка...</span>
+                ) : currentCv && currentCv.rating ? (
+                  <>
+                    <RatingStars value={parseFloat(currentCv.rating)} />
+                    <span className="profile-card__metric-value">{parseFloat(currentCv.rating).toFixed(1)}</span>
+                  </>
+                ) : (
+                  <span className="profile-card__metric-value">Нет данных</span>
+                )}
               </div>
               <div className="profile-card__metric">
                 <span className="profile-card__metric-label">XP:</span>
-                <span className="profile-card__metric-value">{data.xp}</span>
+                {isLoadingProfile ? (
+                  <span className="profile-card__metric-value">Загрузка...</span>
+                ) : userProfile && userProfile.xp !== undefined ? (
+                  <span className="profile-card__metric-value">{userProfile.xp}</span>
+                ) : (
+                  <span className="profile-card__metric-value">0</span>
+                )}
               </div>
             </div>
           </div>
@@ -1239,10 +1307,64 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
       </section>
 
       <nav className="tabs">
-        <button type="button" className={`tabs__btn ${activeTab === 'opportunities' ? 'is-active' : ''}`} onClick={() => setActiveTab('opportunities')}>Карьерные возможности</button>
+        <button type="button" className={`tabs__btn ${activeTab === 'personal_assistant' ? 'is-active' : ''}`} onClick={() => setActiveTab('personal_assistant')}>Личный помощник</button>
         <button type="button" className={`tabs__btn ${activeTab === 'data' ? 'is-active' : ''}`} onClick={() => setActiveTab('data')}>Данные</button>
-        <button type="button" className={`tabs__btn ${activeTab === 'courses' ? 'is-active' : ''}`} onClick={() => setActiveTab('courses')}>Курсы и перспективы</button>
+        <button type="button" className={`tabs__btn ${activeTab === 'opportunities' ? 'is-active' : ''}`} onClick={() => setActiveTab('opportunities')}>Карьерные возможности</button>
+        <button type="button" className={`tabs__btn ${activeTab === 'courses' ? 'is-active' : ''}`} onClick={() => setActiveTab('courses')}>Курсы</button>
       </nav>
+
+      {activeTab === 'personal_assistant' && (
+        <section className="panel">
+          <div className="assistant-container">
+            <div className="assistant-tasks">
+              <h3>Рекомендации по улучшению CV</h3>
+              <div className="task-list">
+                {taskSuggestions.map((task) => (
+                  <div key={task.id} className={`task-item ${completedTasks.includes(task.id) ? 'task-item--completed' : ''}`}>
+                    <div className="task-item__header">
+                      <label className="task-item__checkbox">
+                        <input 
+                          type="checkbox" 
+                          checked={completedTasks.includes(task.id)}
+                          onChange={() => toggleTaskCompletion(task.id)}
+                        />
+                        <span className="task-item__title">{task.title}</span>
+                      </label>
+                    </div>
+                    <p className="task-item__details">{task.details}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="assistant-chat">
+              <h3>Чат с помощником</h3>
+              <div className="chat">
+                <div className="chat__messages">
+                  {assistantMessages.map((message, index) => (
+                    <div key={index} className={`msg ${message.from === 'bot' ? 'msg--bot' : 'msg--user'}`}>
+                      {message.text}
+                    </div>
+                  ))}
+                </div>
+                <div className="chat__input">
+                  <input 
+                    className="field__input" 
+                    type="text" 
+                    placeholder="Задайте вопрос помощнику..." 
+                    value={assistantInput} 
+                    onChange={(e) => setAssistantInput(e.target.value)} 
+                    onKeyDown={(e) => e.key === 'Enter' && sendAssistantMessage()}
+                  />
+                  <button className="btn btn-green" type="button" onClick={sendAssistantMessage}>
+                    Отправить
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {activeTab === 'opportunities' && (
         <section className="panel">

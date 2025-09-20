@@ -412,8 +412,8 @@
 
 .landing__header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: end;
+  align-items: end;
 }
 
 .landing__body {
@@ -1648,7 +1648,7 @@
 .field { display:flex; flex-direction:column; gap:6px; }
 .field__label { color: var(--muted); font-size:14px; }
 .field__text { color: var(--text); font-weight:600; }
-.field__input { padding:12px 14px; border-radius:14px; border:1px solid rgba(148,163,184,.28); background: rgba(15,23,42,.75); color: var(--text); }
+.field__input { padding:12px 14px; min-width: 300px; border-radius:14px; border:1px solid rgba(148,163,184,.28); background: rgba(15,23,42,.75); color: var(--text); }
 .field__input:focus { outline:none; border-color: rgba(168,85,247,.6); box-shadow: 0 0 0 3px rgba(168,85,247,.18); }
 
 
@@ -1662,11 +1662,11 @@
 .split { display:grid; grid-template-columns: 320px 1fr; gap: 16px; }
 .filters { display:flex; flex-direction:column; gap:12px; }
 .chat { display:flex; flex-direction:column; gap:12px; }
-.chat__messages { display:flex; flex-direction:column; gap:10px; max-height:420px; overflow:auto; }
+.chat__messages { display:flex; flex-direction:column; gap:10px; min-height:450px; overflow:auto; }
 .msg { padding:12px 14px; border-radius:14px; max-width:80%; }
 .msg--user { align-self:flex-end; background: rgba(168,85,247,0.2); border:1px solid rgba(168,85,247,0.35); }
 .msg--bot { align-self:flex-start; background: rgba(15,23,42,0.65); border:1px solid rgba(148,163,184,0.18); cursor:pointer; }
-.chat__input { display:flex; gap:10px; }
+.chat__input { display:flex; justify-content:space-between; gap:10px; };
 
 /* CV Manager Styles */
 .cv-manager {
@@ -1836,5 +1836,123 @@
   
   .cv-manager__header .icon-button {
     align-self: flex-end;
+  }
+}
+
+/* Стили для личного помощника */
+.assistant-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.assistant-tasks,
+.assistant-chat {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.assistant-tasks h3,
+.assistant-chat h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-item {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.task-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(94, 234, 212, 0.2);
+}
+
+.task-item--completed {
+  opacity: 0.6;
+  background: rgba(94, 234, 212, 0.05);
+  border-color: rgba(94, 234, 212, 0.2);
+}
+
+.task-item__header {
+  margin-bottom: 8px;
+}
+
+.task-item__checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.task-item__checkbox input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: var(--green);
+}
+
+.task-item__title {
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.task-item--completed .task-item__title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.task-item__details {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+  margin-left: 24px;
+}
+
+.assistant-chat .chat {
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.assistant-chat .chat__messages {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.assistant-chat .chat__input {
+  margin-top: 12px;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .assistant-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .assistant-tasks,
+  .assistant-chat {
+    padding: 16px;
+  }
+  
+  .assistant-chat .chat {
+    height: 300px;
   }
 }
