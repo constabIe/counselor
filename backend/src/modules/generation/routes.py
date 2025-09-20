@@ -51,7 +51,7 @@ async def generate_employees(
     try:
         response = await generation_service.generate_employees(session, request)
         
-        logger.info(
+        print(
             f"Пользователь {current_user.id} ({current_user.role}) "
             f"выполнил запрос генерации: '{request.query}', "
             f"найдено {response.total_found} сотрудников"

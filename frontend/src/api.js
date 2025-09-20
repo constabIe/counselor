@@ -225,5 +225,32 @@ export const api = {
       await parseError(response);
     }
     return response.json();
+  },
+
+  async getJobById(token, jobId) {
+    const response = await fetch(`${API_URL}/jobs/${jobId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
+  },
+
+  async searchEmployees(token, searchData) {
+    const response = await fetch(`${API_URL}/generation/employees/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(searchData),
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
   }
 };

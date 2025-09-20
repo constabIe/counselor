@@ -2036,6 +2036,9 @@ function HrDashboard({ onLogout }) {
     languages: '',
     education: '',
     specialty: '',
+    department: '',
+    level: '',
+    skills: '',
     format: '',
     uploaded: '',
     ratingMin: 0,
@@ -2046,27 +2049,190 @@ function HrDashboard({ onLogout }) {
   ])
   const [chatInput, setChatInput] = React.useState('')
   const [showCvModal, setShowCvModal] = React.useState(false)
+  const [isSearching, setIsSearching] = React.useState(false)
+  const [searchResults, setSearchResults] = React.useState([])
 
   const allCvs = React.useMemo(
     () => folders.flatMap((f) => (f.files || []).map((file) => ({ ...file, folder: f.name }))),
     [folders]
   )
 
-  const sendQuery = () => {
+  const sendQuery = async () => {
     const text = chatInput.trim()
     if (!text) return
+    
     setMessages((prev) => [...prev, { from: 'user', text }])
     setChatInput('')
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { from: 'bot', text: 'Нашлось несколько подходящих резюме. Открыть список?', action: 'open' },
-      ])
-    }, 200)
+    setIsSearching(true)
+    
+    // Показываем сообщение о загрузке
+    setMessages((prev) => [...prev, { from: 'bot', text: 'Ищу подходящих сотрудников...' }])
+    
+    try {
+      // Подготавливаем данные для запроса
+      const searchData = {
+        query: text,
+        filters: {
+          department: filters.department || undefined,
+          experience_years_min: filters.expMin,
+          experience_years_max: filters.expMax,
+          skills: filters.skills ? filters.skills.split(',').map(s => s.trim()).filter(s => s) : 
+                  filters.specialty ? filters.specialty.split(',').map(s => s.trim()).filter(s => s) : [],
+          level: filters.level || undefined,
+          languages: filters.languages ? filters.languages.split(',').map(l => l.trim()).filter(l => l) : [],
+          education_level: filters.education || undefined,
+          age_min: filters.ageMin,
+          age_max: filters.ageMax
+        }
+      }
+      
+      // Удаляем undefined значения из filters
+      const cleanFilters = Object.fromEntries(
+        Object.entries(searchData.filters).filter(([_, v]) => v !== undefined && v !== '' && (!Array.isArray(v) || v.length > 0))
+      )
+      searchData.filters = cleanFilters
+      
+      const results = await api.searchEmployees(token, searchData)
+      setSearchResults(results.employees || [])
+      
+      // Обновляем сообщения с результатами
+      setMessages((prev) => {
+        const newMessages = [...prev]
+        // Убираем сообщение о загрузке
+        newMessages.pop()
+        
+        if (results.employees && results.employees.length > 0) {
+          // Добавляем сообщение с тегами, если они есть
+          if (results.generated_tags && results.generated_tags.length > 0) {
+            newMessages.push({
+              from: 'bot',
+              text: `Определил ключевые навыки: ${results.generated_tags.join(', ')}`
+            })
+          }
+          
+          newMessages.push({
+            from: 'bot',
+            text: `Найдено ${results.employees.length} подходящих сотрудников${results.total_found && results.total_found !== results.employees.length ? ` из ${results.total_found} общего количества` : ''}. Открыть список?`,
+            action: 'open'
+          })
+        } else {
+          newMessages.push({
+            from: 'bot',
+            text: 'К сожалению, не удалось найти сотрудников по вашему запросу. Попробуйте изменить критерии поиска.'
+          })
+        }
+        
+        return newMessages
+      })
+      
+    } catch (error) {
+      console.error('Ошибка поиска сотрудников:', error)
+      
+      // Обновляем сообщения с ошибкой
+      setMessages((prev) => {
+        const newMessages = [...prev]
+        // Убираем сообщение о загрузке
+        newMessages.pop()
+        newMessages.push({
+          from: 'bot',
+          text: `Произошла ошибка при поиске: ${error.message || 'Неизвестная ошибка'}. Попробуйте еще раз.`
+        })
+        return newMessages
+      })
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const searchByFilters = async () => {
+    setIsSearching(true)
+    
+    // Добавляем сообщение о поиске по фильтрам
+    setMessages((prev) => [...prev, 
+      { from: 'user', text: 'Поиск по заданным фильтрам' },
+      { from: 'bot', text: 'Ищу сотрудников по заданным фильтрам...' }
+    ])
+    
+    try {
+      // Подготавливаем данные для запроса
+      const searchData = {
+        query: "Поиск по фильтрам",
+        filters: {
+          department: filters.department || undefined,
+          experience_years_min: filters.expMin,
+          experience_years_max: filters.expMax,
+          skills: filters.skills ? filters.skills.split(',').map(s => s.trim()).filter(s => s) : 
+                  filters.specialty ? filters.specialty.split(',').map(s => s.trim()).filter(s => s) : [],
+          level: filters.level || undefined,
+          languages: filters.languages ? filters.languages.split(',').map(l => l.trim()).filter(l => l) : [],
+          education_level: filters.education || undefined,
+          age_min: filters.ageMin,
+          age_max: filters.ageMax
+        }
+      }
+      
+      // Удаляем undefined значения из filters
+      const cleanFilters = Object.fromEntries(
+        Object.entries(searchData.filters).filter(([_, v]) => v !== undefined && v !== '' && (!Array.isArray(v) || v.length > 0))
+      )
+      searchData.filters = cleanFilters
+      
+      const results = await api.searchEmployees(token, searchData)
+      setSearchResults(results.employees || [])
+      
+      // Обновляем сообщения с результатами
+      setMessages((prev) => {
+        const newMessages = [...prev]
+        // Убираем сообщение о загрузке
+        newMessages.pop()
+        
+        if (results.employees && results.employees.length > 0) {
+          // Добавляем сообщение с тегами, если они есть
+          if (results.generated_tags && results.generated_tags.length > 0) {
+            newMessages.push({
+              from: 'bot',
+              text: `Определил ключевые навыки из фильтров: ${results.generated_tags.join(', ')}`
+            })
+          }
+          
+          newMessages.push({
+            from: 'bot',
+            text: `Найдено ${results.employees.length} подходящих сотрудников по заданным фильтрам${results.total_found && results.total_found !== results.employees.length ? ` из ${results.total_found} общего количества` : ''}. Открыть список?`,
+            action: 'open'
+          })
+        } else {
+          newMessages.push({
+            from: 'bot',
+            text: 'По заданным фильтрам сотрудники не найдены. Попробуйте изменить критерии поиска.'
+          })
+        }
+        
+        return newMessages
+      })
+      
+    } catch (error) {
+      console.error('Ошибка поиска сотрудников:', error)
+      
+      // Обновляем сообщения с ошибкой
+      setMessages((prev) => {
+        const newMessages = [...prev]
+        // Убираем сообщение о загрузке
+        newMessages.pop()
+        newMessages.push({
+          from: 'bot',
+          text: `Произошла ошибка при поиске: ${error.message || 'Неизвестная ошибка'}. Попробуйте еще раз.`
+        })
+        return newMessages
+      })
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   const onBotAction = (msg) => {
-    if (msg.action === 'open') setShowCvModal(true)
+    if (msg.action === 'open') {
+      setShowCvModal(true)
+    }
   }
 
   const update = (key) => (e) => setFilters((p) => ({ ...p, [key]: e.target.value }))
@@ -2136,9 +2302,22 @@ function HrDashboard({ onLogout }) {
               <label className="field"><span className="field__label">Языки</span><input className="field__input" type="text" placeholder="English B2+, ..." value={filters.languages} onChange={update('languages')} /></label>
               <label className="field"><span className="field__label">Образование</span><input className="field__input" type="text" placeholder="бакалавр/магистр/PhD" value={filters.education} onChange={update('education')} /></label>
               <label className="field"><span className="field__label">Специальность</span><input className="field__input" type="text" value={filters.specialty} onChange={update('specialty')} /></label>
+              <label className="field"><span className="field__label">Департамент</span><input className="field__input" type="text" placeholder="IT, HR, Marketing..." value={filters.department} onChange={update('department')} /></label>
+              <label className="field"><span className="field__label">Уровень</span><input className="field__input" type="text" placeholder="Junior, Middle, Senior..." value={filters.level} onChange={update('level')} /></label>
+              <label className="field"><span className="field__label">Навыки</span><input className="field__input" type="text" placeholder="Python, React, SQL..." value={filters.skills} onChange={update('skills')} /></label>
               <label className="field"><span className="field__label">Формат работы</span><input className="field__input" type="text" placeholder="офис/гибрид/удалёнка" value={filters.format} onChange={update('format')} /></label>
               <label className="field"><span className="field__label">Дата загрузки</span><input className="field__input" type="date" value={filters.uploaded} onChange={update('uploaded')} /></label>
               <label className="field"><span className="field__label">Мин. рейтинг</span><input className="field__input" type="number" value={filters.ratingMin} onChange={update('ratingMin')} /></label>
+            </div>
+            <div style={{marginTop: '1rem'}}>
+              <button 
+                className="btn btn-green" 
+                type="button" 
+                onClick={() => searchByFilters()}
+                disabled={isSearching}
+              >
+                {isSearching ? 'Поиск...' : 'Найти по фильтрам'}
+              </button>
             </div>
           </div>
           <section className="chat">
@@ -2150,8 +2329,10 @@ function HrDashboard({ onLogout }) {
               ))}
             </div>
             <div className="chat__input">
-              <input className="field__input" type="text" placeholder="Опишите требования..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendQuery()} />
-              <button className="btn btn-green" type="button" onClick={sendQuery}>Отправить</button>
+              <input className="field__input" type="text" placeholder="Опишите требования..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !isSearching && sendQuery()} disabled={isSearching} />
+              <button className="btn btn-green" type="button" onClick={sendQuery} disabled={isSearching || !chatInput.trim()}>
+                {isSearching ? 'Поиск...' : 'Отправить'}
+              </button>
             </div>
           </section>
         </section>
@@ -2237,7 +2418,7 @@ function HrDashboard({ onLogout }) {
 
 
       {showCvModal && (
-        <CvResultsModal list={allCvs} onClose={() => setShowCvModal(false)} />
+        <CvResultsModal list={searchResults.length > 0 ? searchResults : allCvs} onClose={() => setShowCvModal(false)} />
       )}
     </div>
   )
@@ -2844,28 +3025,104 @@ function CvResultsModal({ list, onClose }) {
   const [folderName, setFolderName] = React.useState('')
   const [selected, setSelected] = React.useState(null)
   const addToFolder = () => { onClose() }
+  
+  // Функция для получения отображаемого имени
+  const getDisplayName = (item) => {
+    return item.name || item.full_name || item.title || 'Без названия'
+  }
+  
+  // Функция для получения мета-информации
+  const getMetaInfo = (item) => {
+    if (item.folder && item.uploaded) {
+      return `${item.folder} - ${item.uploaded}`
+    }
+    if (item.department) {
+      const rating = item.rating ? ` • Рейтинг: ${item.rating}/5` : ''
+      const matchScore = item.match_score ? ` • Соответствие: ${Math.round(item.match_score * 100)}%` : ''
+      return `${item.department} - ${item.experience_years || 0} лет опыта${rating}${matchScore}`
+    }
+    return 'Информация недоступна'
+  }
+  
+  // Функция для получения навыков сотрудника
+  const getSkills = (item) => {
+    if (item.skills && Array.isArray(item.skills) && item.skills.length > 0) {
+      return item.skills.slice(0, 3).join(', ') + (item.skills.length > 3 ? '...' : '')
+    }
+    return null
+  }
+  
   return (
     <div className="modal" role="dialog" aria-modal="true">
       <div className="modal__backdrop" onClick={onClose} />
       <div className="modal__dialog" role="document">
         <header className="modal__header">
-          <h2>Подходящие резюме</h2>
+          <h2>Найденные сотрудники</h2>
           <button className="icon-button icon-button--ghost modal__close" type="button" onClick={onClose}>
             <CloseIcon className="icon icon--small" />
           </button>
         </header>
         <div className="modal__content" style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 16 }}>
           <ul className="list" style={{ maxHeight: 360, overflow: 'auto' }}>
-            {list.map((cv) => (
-              <li key={cv.id} className="list__item" onClick={() => setSelected(cv)} style={{ cursor: 'pointer' }}>
-                <span className="list__title">{cv.name}</span>
-                <span className="list__meta">{cv.folder + ' - ' + cv.uploaded}</span>
+            {list.length === 0 ? (
+              <li className="list__item" style={{ textAlign: 'center', color: '#6b7280' }}>
+                Результаты не найдены
               </li>
-            ))}
+            ) : (
+              list.map((cv, index) => (
+                <li key={cv.id || index} className="list__item" onClick={() => setSelected(cv)} style={{ cursor: 'pointer' }}>
+                  <div>
+                    <span className="list__title">{getDisplayName(cv)}</span>
+                    <span className="list__meta">{getMetaInfo(cv)}</span>
+                    {getSkills(cv) && (
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                        Навыки: {getSkills(cv)}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))
+            )}
           </ul>
           <div className="form-grid">
-            <label className="field"><span className="field__label">Папка</span><input className="field__input" placeholder="Новая или существующая" value={folderName} onChange={(e) => setFolderName(e.target.value)} /></label>
-            <button className="btn btn-purple" type="button" disabled={!selected || !folderName} onClick={addToFolder}>Добавить выбранное</button>
+            {selected && selected.department ? (
+              // Показываем информацию о выбранном сотруднике
+              <div>
+                <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>Информация о сотруднике</h3>
+                <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
+                  <p><strong>Имя:</strong> {getDisplayName(selected)}</p>
+                  <p><strong>Департамент:</strong> {selected.department}</p>
+                  <p><strong>Опыт:</strong> {selected.experience_years} лет</p>
+                  {selected.rating && <p><strong>Рейтинг:</strong> {selected.rating}/5</p>}
+                  {selected.match_score && <p><strong>Соответствие:</strong> {Math.round(selected.match_score * 100)}%</p>}
+                  {selected.skills && selected.skills.length > 0 && (
+                    <div>
+                      <strong>Навыки:</strong>
+                      <div style={{ marginTop: '8px' }}>
+                        {selected.skills.map((skill, index) => (
+                          <span key={index} style={{
+                            display: 'inline-block',
+                            padding: '4px 8px',
+                            margin: '2px',
+                            backgroundColor: '#f3f4f6',
+                            borderRadius: '4px',
+                            fontSize: '12px'
+                          }}>
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Показываем форму добавления в папку для обычных CV
+              <>
+                <label className="field"><span className="field__label">Папка</span><input className="field__input" placeholder="Новая или существующая" value={folderName} onChange={(e) => setFolderName(e.target.value)} /></label>
+                <button className="btn btn-purple" type="button" disabled={!selected || !folderName} onClick={addToFolder}>Добавить выбранное</button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -3053,6 +3310,16 @@ function SubCard({ title, render }) {
 
 // Модальное окно для информации о папке
 function FolderFilesModal({ folder, folderDetails, isLoadingDetails, onClose }) {
+  const [jobInfo, setJobInfo] = React.useState(null);
+  const [isLoadingJob, setIsLoadingJob] = React.useState(false);
+  const [token] = React.useState(localStorage.getItem('token'));
+
+  // Сбрасываем состояние при открытии нового модального окна
+  React.useEffect(() => {
+    setJobInfo(null);
+    setIsLoadingJob(false);
+  }, [folder?.id]);
+
   const formatMoscowDate = (dateString) => {
     if (!dateString) return 'Неизвестно';
     const date = new Date(dateString);
@@ -3066,6 +3333,26 @@ function FolderFilesModal({ folder, folderDetails, isLoadingDetails, onClose }) 
   };
 
   const displayData = folderDetails || folder;
+
+  // Загружаем информацию о вакансии когда получаем детали папки
+  React.useEffect(() => {
+    const loadJobInfo = async () => {
+      if (displayData?.job_id && token && !isLoadingJob) {
+        try {
+          setIsLoadingJob(true);
+          const job = await api.getJobById(token, displayData.job_id);
+          setJobInfo(job);
+        } catch (error) {
+          console.error('Ошибка загрузки информации о вакансии:', error);
+          setJobInfo(null);
+        } finally {
+          setIsLoadingJob(false);
+        }
+      }
+    };
+
+    loadJobInfo();
+  }, [displayData?.job_id, token]);
 
   return (
     <div className="modal" role="dialog" aria-modal="true" style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
@@ -3128,8 +3415,25 @@ function FolderFilesModal({ folder, folderDetails, isLoadingDetails, onClose }) 
                     <span style={{color: '#f3f4f6'}}>{formatMoscowDate(displayData.updated_at)}</span>
                   </div>
                   <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                    <span style={{fontWeight: '500', color: '#9ca3af'}}>ID вакансии:</span>
-                    <span style={{color: '#d1d5db', fontFamily: 'monospace', fontSize: '0.875rem'}}>{displayData.job_id}</span>
+                    <span style={{fontWeight: '500', color: '#9ca3af'}}>Вакансия:</span>
+                    <span style={{color: '#f3f4f6', textAlign: 'right', maxWidth: '60%'}}>
+                      {isLoadingJob ? (
+                        <span style={{color: '#9ca3af'}}>Загрузка...</span>
+                      ) : jobInfo ? (
+                        <span>
+                          {jobInfo.title}
+                          {jobInfo.department && (
+                            <span style={{color: '#9ca3af', fontSize: '0.875rem', display: 'block'}}>
+                              {jobInfo.department}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span style={{color: '#d1d5db', fontFamily: 'monospace', fontSize: '0.875rem'}}>
+                          {displayData.job_id}
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div style={{display: 'flex', justifyContent: 'space-between'}}>
                     <span style={{fontWeight: '500', color: '#9ca3af'}}>Статус:</span>
