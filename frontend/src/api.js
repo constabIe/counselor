@@ -227,6 +227,19 @@ export const api = {
     return response.json();
   },
 
+  async deleteFolder(token, folderId) {
+    const response = await fetch(`${API_URL}/folders/${folderId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
+  },
+
   async getJobById(token, jobId) {
     const response = await fetch(`${API_URL}/jobs/${jobId}`, {
       headers: {

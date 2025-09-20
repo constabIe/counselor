@@ -2238,6 +2238,24 @@ function HrDashboard({ onLogout }) {
     setFolderDetails(null);
   };
 
+  // Функция для удаления папки
+  const handleDeleteFolder = async (folderId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить эту папку? Все файлы в ней будут потеряны.')) {
+      return;
+    }
+    
+    try {
+      await api.deleteFolder(token, folderId);
+      // Перезагружаем список папок с сервера
+      await loadFolders();
+      // Закрываем модальное окно
+      closeFolderModal();
+    } catch (error) {
+      console.error('Ошибка удаления папки:', error);
+      alert('Ошибка при удалении папки: ' + (error.message || 'Неизвестная ошибка'));
+    }
+  };
+
   return (
     <div className="hr-dashboard">
       <header className="dashboard-header">
@@ -2341,7 +2359,7 @@ function HrDashboard({ onLogout }) {
                 display: 'grid', 
                 gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
                 gap: '1.5rem',
-                maxWidth: '1200px',
+                maxWidth: '900px',
                 margin: '0 auto'
               }}
             >
@@ -2363,10 +2381,6 @@ function HrDashboard({ onLogout }) {
                 <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem' }}>
                   <FolderIcon className="icon" style={{ fontSize: '3rem', color: '#9ca3af', marginBottom: '1rem' }} />
                   <p style={{ fontSize: '1.125rem', color: '#6b7280', marginBottom: '1rem' }}>У вас пока нет папок с CV</p>
-                  <p style={{ color: '#9ca3af', marginBottom: '1.5rem' }}>Создайте папку для организации резюме кандидатов по вакансиям</p>
-                  <button className="btn btn-purple" type="button" onClick={openCreateFolderModal}>
-                    Создать первую папку
-                  </button>
                 </div>
               )}
             </div>
@@ -2377,7 +2391,8 @@ function HrDashboard({ onLogout }) {
               folder={activeFolder} 
               folderDetails={folderDetails}
               isLoadingDetails={isLoadingFolderDetails}
-              onClose={closeFolderModal} 
+              onClose={closeFolderModal}
+              onDelete={handleDeleteFolder}
             />
           )}
           
@@ -3320,7 +3335,7 @@ function SubCard({ title, render }) {
 }
 
 // Модальное окно для информации о папке
-function FolderFilesModal({ folder, folderDetails, isLoadingDetails, onClose }) {
+function FolderFilesModal({ folder, folderDetails, isLoadingDetails, onClose, onDelete }) {
   const [jobInfo, setJobInfo] = React.useState(null);
   const [isLoadingJob, setIsLoadingJob] = React.useState(false);
   const [token] = React.useState(localStorage.getItem('token'));
@@ -3376,12 +3391,7 @@ function FolderFilesModal({ folder, folderDetails, isLoadingDetails, onClose }) 
         borderRadius: '12px',
         border: '1px solid #374151'
       }}>
-        <header className="modal__header" style={{
-          backgroundColor: '#111827',
-          borderTopLeftRadius: '12px',
-          borderTopRightRadius: '12px',
-          borderBottom: '1px solid #374151'
-        }}>
+        <header className="modal__header" >
           <h2 style={{fontSize: '1.5rem', marginBottom: '1rem', color: '#f3f4f6'}}>Информация о папке: {displayData.name}</h2>
           <button className="icon-button icon-button--ghost modal__close" type="button" onClick={onClose} style={{color: '#f3f4f6'}}>
             <CloseIcon className="icon icon--small" />
@@ -3493,6 +3503,45 @@ function FolderFilesModal({ folder, folderDetails, isLoadingDetails, onClose }) 
             </div>
           )}
         </div>
+        <footer className="modal__footer" style={{
+          padding: '1rem 1.5rem',
+          borderTop: '1px solid #374151',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#1f2937'
+        }}>
+          <button 
+            className="btn btn-danger" 
+            type="button" 
+            onClick={() => onDelete(displayData.id)}
+            style={{
+              backgroundColor: '#dc2626',
+              color: 'white',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Удалить
+          </button>
+          <button 
+            className="btn btn-ghost" 
+            type="button" 
+            onClick={onClose}
+            style={{
+              backgroundColor: 'transparent',
+              color: '#d1d5db',
+              border: '1px solid #4b5563',
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Закрыть
+          </button>
+        </footer>
       </div>
     </div>
   )
