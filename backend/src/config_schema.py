@@ -17,7 +17,7 @@ class Environment(StrEnum):
 
 
 class SettingBaseModel(BaseModel):
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="ignore")
 
 
 class Settings(SettingBaseModel):
