@@ -1315,7 +1315,6 @@
 
 .modal__footer {
   display: flex;
-  flex-direction: column;
   gap: 16px;
 }
 
@@ -1433,11 +1432,6 @@
   line-height: 1.5;
 }
 
-.modal__footer {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
 
 .modal__footer h3 {
   margin: 0;
@@ -1551,12 +1545,6 @@
   font-size: 14px;
   color: rgba(148, 163, 184, 0.85);
   line-height: 1.5;
-}
-
-.modal__footer {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .modal__footer h3 {
