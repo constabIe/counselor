@@ -497,19 +497,7 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
         {mode === 'login' && (
           <section className="auth__login auth__panel">
             <div className="auth__login-header">
-              <h3>У вас уже аккаунт?</h3>
-              <p className="auth__hint">Выберите роль, затем авторизуйтесь.</p>
-            </div>
-
-            <div className="auth__role">
-              <label className={`auth__pill ${loginRole === 'employee' ? 'is-active' : ''}`}>
-                <input type="radio" name="login-role" value="employee" checked={loginRole === 'employee'} onChange={() => setLoginRole('employee')} />
-                Сотрудник
-              </label>
-              <label className={`auth__pill ${loginRole === 'hr' ? 'is-active' : ''}`}>
-                <input type="radio" name="login-role" value="hr" checked={loginRole === 'hr'} onChange={() => setLoginRole('hr')} />
-                HR
-              </label>
+              <h3>У вас уже есть аккаунт?</h3>
             </div>
 
             <div className="auth__fields">
