@@ -1,5 +1,6 @@
 Простой шаблон проекта на React (Vite)
 
+
 Содержимое
 - index.html — корневой файл
 - src/App.jsx — главный компонент
@@ -21,8 +22,3 @@
 
 - Локальный предпросмотр собранной версии:
   npm run preview
-
-Примечания
-- Проект использует Vite и @vitejs/plugin-react для JSX и HMR.
-- Хотите TypeScript или ESLint/Prettier? Скажите — добавлю.
-

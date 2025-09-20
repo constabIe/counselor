@@ -8,12 +8,57 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
 from fastapi.responses import FileResponse
 
 from src.modules.cv import repository as cv_repo
+from src.modules.badges import service as badge_service
+from src.modules.users import repository as user_repo
 from src.modules.cv.schemas import CVUploadResponse, CVOut, CVUpdate, CVUpdateResponse
 from src.storages.sql.dependencies import DbSessionDep
 from src.modules.users.dependencies import CurrentUserDep
 from src.utils.file_storage import save_cv_file, delete_cv_file, get_file_size_mb
 
 logger = logging.getLogger(__name__)
+
+# XP значения для различных полей CV
+CV_FIELD_XP_VALUES = {
+    # Важные поля (больше XP)
+    "skills": 3,
+    "experience_years": 2,
+    "education": 3,
+    "jobs": 4,
+    "current_role": 2,
+    "responsibilities": 2,
+    "competencies": 4,
+    
+    # Средние поля
+    "additional_education": 2,
+    "languages": 2,
+    "department": 1,
+    "specialization": 2,
+    
+    # Простые поля
+    "age": 1,
+    "grade": 1,
+    "comments": 1,
+    "tags": 1,
+    "career_path": 2,
+}
+
+def calculate_cv_update_xp(update_fields: dict) -> int:
+    """Рассчитывает XP за обновление полей CV"""
+    total_xp = 0
+    
+    for field_name in update_fields.keys():
+        # Получаем XP за поле, по умолчанию 1 XP
+        field_xp = CV_FIELD_XP_VALUES.get(field_name, 1)
+        total_xp += field_xp
+    
+    # Бонус за обновление множественных полей
+    field_count = len(update_fields)
+    if field_count >= 5:
+        total_xp += 5  # Бонус за обновление 5+ полей
+    elif field_count >= 3:
+        total_xp += 2  # Бонус за обновление 3+ полей
+    
+    return total_xp
 
 router = APIRouter(
     prefix="/cv",
@@ -77,6 +122,17 @@ async def upload_cv(
             content_type=file.content_type or "application/pdf",
         )
         
+        # Проверяем и выдаем бейджи за загрузку CV
+        await badge_service.badge_service.check_and_award_badges(
+            session, current_user.id, "cv_uploaded"
+        )
+        
+        # Дополнительно начисляем XP за загрузку CV (независимо от бейджей)
+        upload_xp = 5  # 5 XP за загрузку
+        await user_repo.add_xp_to_user(session, current_user.id, upload_xp)
+        
+        await session.commit()
+        
         return CVUploadResponse(
             id=cv.id,
             filename=cv.filename,
@@ -84,6 +140,7 @@ async def upload_cv(
             file_size=cv.file_size,
             uploaded_at=cv.uploaded_at,
             analysis_status=cv.analysis_status,
+            xp_earned=upload_xp,
         )
         
     except HTTPException:
@@ -371,10 +428,25 @@ async def update_cv(
             detail="CV не найдено или недостаточно прав"
         )
     
+    # Начисляем XP за обновление CV
+    xp_for_update = calculate_cv_update_xp(update_fields)
+    await user_repo.add_xp_to_user(session, current_user.id, xp_for_update)
+    
+    # Получаем примерное количество обновлений для проверки бейджей
+    update_count = await user_repo.increment_user_cv_updates(session, current_user.id)
+    
+    # Проверяем и выдаем бейджи за обновление профиля
+    await badge_service.badge_service.check_and_award_badges(
+        session, current_user.id, "profile_updated", cv_update_count=update_count
+    )
+    
+    await session.commit()
+    
     return CVUpdateResponse(
         id=updated_cv.id,
         rating=updated_cv.rating,
-        updated_fields=list(update_fields.keys())
+        updated_fields=list(update_fields.keys()),
+        xp_earned=xp_for_update  # Добавим информацию о заработанном XP
     )
 
 

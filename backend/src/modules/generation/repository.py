@@ -25,7 +25,7 @@ async def search_employees_by_tags(
     # Базовый запрос для активных CV с пользователями
     stmt = (
         select(CV, User)
-        .join(User, CV.user_id == User.id)
+        .join(User, CV.user_id == User.id) # type: ignore
         .where(CV.is_active == True, User.is_active == True)
     )
     
@@ -34,11 +34,11 @@ async def search_employees_by_tags(
         tag_conditions = []
         for tag in tags:
             # Ищем теги в JSON поле tags
-            tag_conditions.append(CV.tags.like(f'%"{tag}"%'))
+            tag_conditions.append(CV.tags.like(f'%"{tag}"%')) # type: ignore
             # Также ищем в навыках
-            tag_conditions.append(CV.skills.like(f'%"{tag}"%')) # pyright: ignore[reportAttributeAccessIssue]
+            tag_conditions.append(CV.skills.like(f'%"{tag}"%')) # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
             # И в специализации
-            tag_conditions.append(CV.specialization.like(f'%{tag}%'))
+            tag_conditions.append(CV.specialization.like(f'%{tag}%')) # type: ignore
         
         stmt = stmt.where(or_(*tag_conditions))
     
@@ -47,33 +47,33 @@ async def search_employees_by_tags(
         stmt = stmt.where(CV.department == filters.department)
     
     if filters.experience_years_min is not None:
-        stmt = stmt.where(CV.experience_years >= filters.experience_years_min)
+        stmt = stmt.where(CV.experience_years >= filters.experience_years_min) # type: ignore
     
     if filters.experience_years_max is not None:
-        stmt = stmt.where(CV.experience_years <= filters.experience_years_max)
+        stmt = stmt.where(CV.experience_years <= filters.experience_years_max) # type: ignore
     
     if filters.age_min is not None:
-        stmt = stmt.where(CV.age >= filters.age_min)
+        stmt = stmt.where(CV.age >= filters.age_min) # type: ignore
     
     if filters.age_max is not None:
-        stmt = stmt.where(CV.age <= filters.age_max)
+        stmt = stmt.where(CV.age <= filters.age_max) # type: ignore
     
     # Фильтр по навыкам
     if filters.skills:
         skill_conditions = []
         for skill in filters.skills:
-            skill_conditions.append(CV.skills.like(f'%"{skill}"%'))
+            skill_conditions.append(CV.skills.like(f'%"{skill}"%')) # type: ignore
         stmt = stmt.where(and_(*skill_conditions))
     
     # Фильтр по языкам
     if filters.languages:
         lang_conditions = []
         for lang in filters.languages:
-            lang_conditions.append(CV.languages.like(f'%"{lang}"%'))
+            lang_conditions.append(CV.languages.like(f'%"{lang}"%')) # type: ignore
         stmt = stmt.where(and_(*lang_conditions))
     
     # Сортируем по рейтингу
-    stmt = stmt.order_by(CV.rating.desc().nulls_last(), CV.experience_years.desc().nulls_last())
+    stmt = stmt.order_by(CV.rating.desc().nulls_last(), CV.experience_years.desc().nulls_last()) # type: ignore
     
     # Ограничиваем количество результатов
     stmt = stmt.limit(limit)

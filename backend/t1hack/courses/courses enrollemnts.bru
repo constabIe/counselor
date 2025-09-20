@@ -1,0 +1,21 @@
+meta {
+  name: courses enrollemnts
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8000/courses/enroll
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "course_id": "6746bf81-c9c6-41da-a741-3438634f05d1"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

@@ -7,10 +7,16 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 
 from src.modules.courses import repository as courses_repo
+from src.modules.courses import enrollment_repository as enrollment_repo
+from src.modules.badges import service as badge_service
 from src.modules.courses.schemas import CourseOut, CourseCreate, CourseUpdate
+from src.modules.courses.enrollment_schemas import (
+    EnrollmentCreate, EnrollmentOut, EnrollmentUpdate, 
+    EnrollmentResponse, UserEnrollmentsSummary
+)
 from src.storages.sql.dependencies import DbSessionDep
 from src.modules.users.dependencies import CurrentUserDep
-from src.storages.sql.models import CourseLevel
+from src.storages.sql.models import CourseLevel, EnrollmentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +24,55 @@ router = APIRouter(
     prefix="/courses",
     tags=["Courses"],
 )
+
+
+@router.get(
+    "/my-enrollments",
+    response_model=UserEnrollmentsSummary,
+    summary="Мои записи на курсы",
+    description="Получает все записи текущего пользователя на курсы"
+)
+async def get_my_enrollments(
+    current_user: CurrentUserDep,
+    session: DbSessionDep,
+    status: Optional[EnrollmentStatus] = Query(None, description="Фильтр по статусу"),
+) -> UserEnrollmentsSummary:
+    """Получает записи пользователя на курсы"""
+    
+    # Получаем записи с информацией о курсах
+    enrollments_with_courses = await enrollment_repo.get_user_enrollments(
+        session, current_user.id, status
+    )
+    
+    # Получаем статистику по статусам
+    status_counts = await enrollment_repo.get_enrollment_counts_by_status(
+        session, current_user.id
+    )
+    
+    # Формируем список записей
+    enrollments = [
+        EnrollmentOut(
+            id=enrollment.id,
+            user_id=enrollment.user_id,
+            course_id=enrollment.course_id,
+            course_title=course.title,
+            course_direction=course.direction,
+            course_level=course.level,
+            course_duration_hours=course.duration_hours,
+            status=enrollment.status,
+            enrolled_at=enrollment.enrolled_at,
+            started_at=enrollment.started_at,
+        )
+        for enrollment, course in enrollments_with_courses
+    ]
+    
+    return UserEnrollmentsSummary(
+        enrollments=enrollments,
+        total_count=len(enrollments),
+        enrolled_count=status_counts["enrolled"],
+        started_count=status_counts["started"],
+        completed_count=status_counts["completed"],
+    )
 
 
 @router.get(
@@ -238,3 +293,137 @@ async def get_courses_by_direction(
 #             status_code=status.HTTP_404_NOT_FOUND,
 #             detail="Курс не найден"
 #         )
+
+
+# ========================= ENROLLMENT ROUTES =========================
+
+@router.post(
+    "/enroll",
+    response_model=EnrollmentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Записаться на курс",
+    description="Записывает текущего пользователя на курс"
+)
+async def enroll_to_course(
+    enrollment_data: EnrollmentCreate,
+    current_user: CurrentUserDep,
+    session: DbSessionDep,
+) -> EnrollmentResponse:
+    """Записывает пользователя на курс"""
+    
+    try:
+        # Записываем на курс
+        enrollment = await enrollment_repo.enroll_user_to_course(
+            session, current_user.id, enrollment_data.course_id
+        )
+        
+        # Получаем полную информацию о записи
+        enrollment_with_course = await enrollment_repo.get_enrollment_by_id(
+            session, enrollment.id
+        )
+        
+        if not enrollment_with_course:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Ошибка при получении информации о записи"
+            )
+        
+        enrollment_obj, course_obj = enrollment_with_course
+        
+        # Подсчитываем общее количество записей пользователя
+        total_enrollments = await enrollment_repo.count_user_enrollments(
+            session, current_user.id
+        )
+        
+        # Проверяем и выдаем бейджи за запись на курс
+        await badge_service.badge_service.check_and_award_badges(
+            session, current_user.id, "course_enrolled"
+        )
+        await session.commit()
+        
+        return EnrollmentResponse(
+            enrollment=EnrollmentOut(
+                id=enrollment_obj.id,
+                user_id=enrollment_obj.user_id,
+                course_id=enrollment_obj.course_id,
+                course_title=course_obj.title,
+                course_direction=course_obj.direction,
+                course_level=course_obj.level,
+                course_duration_hours=course_obj.duration_hours,
+                status=enrollment_obj.status,
+                enrolled_at=enrollment_obj.enrolled_at,
+                started_at=enrollment_obj.started_at,
+            ),
+            total_user_enrollments=total_enrollments
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.patch(
+    "/enrollments/{enrollment_id}/status",
+    response_model=EnrollmentOut,
+    summary="Обновить статус записи",
+    description="Обновляет статус записи на курс (например, начать изучение или завершить)"
+)
+async def update_enrollment_status(
+    enrollment_id: UUID,
+    enrollment_update: EnrollmentUpdate,
+    current_user: CurrentUserDep,
+    session: DbSessionDep,
+) -> EnrollmentOut:
+    """Обновляет статус записи на курс"""
+    
+    if not enrollment_update.status:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Необходимо указать новый статус"
+        )
+    
+    # Обновляем статус
+    updated_enrollment = await enrollment_repo.update_enrollment_status(
+        session, enrollment_id, enrollment_update.status, current_user.id
+    )
+    
+    if not updated_enrollment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Запись на курс не найдена"
+        )
+    
+    # Получаем полную информацию
+    enrollment_with_course = await enrollment_repo.get_enrollment_by_id(
+        session, enrollment_id, current_user.id
+    )
+    
+    if not enrollment_with_course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Запись на курс не найдена"
+        )
+    
+    enrollment_obj, course_obj = enrollment_with_course
+    
+    # Проверяем и выдаем бейджи при завершении курса
+    if enrollment_update.status == EnrollmentStatus.COMPLETED:
+        await badge_service.badge_service.check_and_award_badges(
+            session, current_user.id, "course_completed"
+        )
+        await session.commit()
+    
+    return EnrollmentOut(
+        id=enrollment_obj.id,
+        user_id=enrollment_obj.user_id,
+        course_id=enrollment_obj.course_id,
+        course_title=course_obj.title,
+        course_direction=course_obj.direction,
+        course_level=course_obj.level,
+        course_duration_hours=course_obj.duration_hours,
+        status=enrollment_obj.status,
+        enrolled_at=enrollment_obj.enrolled_at,
+        started_at=enrollment_obj.started_at,
+    )

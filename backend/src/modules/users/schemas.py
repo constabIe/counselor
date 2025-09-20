@@ -12,6 +12,7 @@ class UserRegisterIn(BaseModel):
     email: EmailStr = Field(..., description="Email пользователя")
     password: str = Field(..., min_length=6, description="Пароль (минимум 6 символов)")
     full_name: str = Field(..., min_length=2, max_length=255, description="Полное имя")
+    role: UserRole = Field(default=UserRole.USER, description="Роль пользователя")
 
 
 class UserLoginIn(BaseModel):
@@ -37,3 +38,31 @@ class TokenResponse(BaseModel):
 class TokenData(BaseModel):
     user_id: Optional[UUID] = None
     email: Optional[str] = None
+
+
+class RatingPercentileResponse(BaseModel):
+    percentile: Optional[float] = Field(..., description="Процент пользователей с более низким рейтингом (0-100)")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "percentile": 85.5
+            }
+        }
+
+
+class UserXPResponse(BaseModel):
+    current_xp: int = Field(..., description="Текущее количество XP")
+    xp_from_badges: int = Field(..., description="XP от бейджей")
+    xp_from_activities: int = Field(..., description="XP от активностей")
+    total_earned: int = Field(..., description="Всего заработано XP")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "current_xp": 150,
+                "xp_from_badges": 80,
+                "xp_from_activities": 70,
+                "total_earned": 150
+            }
+        }

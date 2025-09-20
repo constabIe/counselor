@@ -14,6 +14,7 @@ class CVUploadResponse(BaseModel):
     file_size: int = Field(..., description="Размер файла в байтах")
     uploaded_at: datetime = Field(..., description="Время загрузки")
     analysis_status: str = Field(..., description="Статус анализа")
+    xp_earned: int = Field(..., description="Количество заработанного XP за загрузку")
 
 
 class CVOut(BaseModel):
@@ -70,6 +71,7 @@ class CVUpdateResponse(BaseModel):
     id: UUID = Field(..., description="ID CV")
     rating: Optional[float] = Field(None, description="Обновленный рейтинг от ИИ (0-10)")
     updated_fields: list[str] = Field(..., description="Список обновленных полей")
+    xp_earned: int = Field(..., description="Количество заработанного XP за обновление")
 
 
 class CVAnalysisResult(BaseModel):
