@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 FILE = BASE_DIR.parent / "backend" / "alembic" / "versions" / "2413bdff9a4a_init.py"
 
