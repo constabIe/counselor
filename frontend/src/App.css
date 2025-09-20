@@ -1412,6 +1412,20 @@
   margin: 0 auto;
 }
 
+.cv-manager__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.cv-manager__header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 700;
+}
+
 .cv-manager__content {
   display: flex;
   flex-direction: column;
@@ -1443,6 +1457,13 @@
   margin: 0 0 24px 0;
   color: var(--muted);
   font-size: 16px;
+}
+
+.cv-manager__empty-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .cv-manager__upload {
@@ -1537,5 +1558,20 @@
   
   .cv-manager__upload-actions {
     flex-direction: column;
+  }
+  
+  .cv-manager__empty-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .cv-manager__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .cv-manager__header .icon-button {
+    align-self: flex-end;
   }
 }

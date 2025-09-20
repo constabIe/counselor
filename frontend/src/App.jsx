@@ -132,6 +132,7 @@ export default function App() {
   const [userData, setUserData] = React.useState(null);
   const [isFirstLogin, setIsFirstLogin] = React.useState(false);
   const [showCvManager, setShowCvManager] = React.useState(false);
+  const [dashboardKey, setDashboardKey] = React.useState(0); // Для принудительного обновления EmployeeDashboard
 
   React.useEffect(() => {
     if (token) {
@@ -238,6 +239,7 @@ export default function App() {
     setIsFirstLogin(false);
     setShowCvManager(false);
     setView('employeeDashboard');
+    setDashboardKey(prev => prev + 1); // Принудительно обновляем EmployeeDashboard
     
     // Загружаем обновленную информацию о пользователе
     if (token) {
@@ -266,8 +268,12 @@ export default function App() {
 
   const handleCloseCvManager = () => {
     setShowCvManager(false);
+    setDashboardKey(prev => prev + 1); // Обновляем dashboard при закрытии CvManager
+    
+    // При первом входе всё равно переходим в личный кабинет, даже если CV не загружено
     if (isFirstLogin) {
-      goLanding();
+      setIsFirstLogin(false);
+      setView('employeeDashboard');
     } else {
       setView('employeeDashboard');
     }
@@ -309,6 +315,7 @@ export default function App() {
 
       {view === 'employeeDashboard' && (
         <EmployeeDashboard
+          key={dashboardKey}
           data={userData || employeeData}
           onLogout={goLanding}
           onReupload={handleShowCvManager}
@@ -684,8 +691,9 @@ function CvManager({
           </button>
 
           <div className="onboarding__content">
-            <div className="onboarding__badge">Загрузка CV</div>
+            <div className="onboarding__badge">Добро пожаловать!</div>
             <h2>Загрузите ваше резюме (CV)</h2>
+            <p>Это поможет нам лучше подобрать для вас вакансии и курсы. Вы можете сделать это сейчас или позже в личном кабинете.</p>
             
             <div className="cv-recommendations">
               <h3>Рекомендации для идеального CV:</h3>
@@ -716,7 +724,14 @@ function CvManager({
           <footer className="onboarding__footer">
             <div className="onboarding__actions">
               <button 
-                className="btn btn-green btn-full" 
+                className="btn btn-ghost" 
+                type="button" 
+                onClick={onClose}
+              >
+                Пропустить
+              </button>
+              <button 
+                className="btn btn-green" 
                 type="button" 
                 onClick={handleUpload}
                 disabled={!selectedFile || isLoading}
@@ -733,6 +748,12 @@ function CvManager({
   // Повторный вход - показываем информацию о текущем CV
   return (
     <div className="cv-manager">
+      <div className="cv-manager__header">
+        <h2>Управление CV</h2>
+        <button className="icon-button icon-button--ghost" type="button" onClick={onClose}>
+          <CloseIcon className="icon icon--small" />
+        </button>
+      </div>
       <div className="cv-manager__content">
         {isLoading && !currentCv ? (
           <div className="cv-manager__loading">Загрузка...</div>
@@ -765,7 +786,7 @@ function CvManager({
                   type="button" 
                   onClick={() => setShowUploadForm(true)}
                 >
-                  Загрузить новое CV
+                  Обновить CV
                 </button>
               </div>
             </div>
@@ -773,19 +794,28 @@ function CvManager({
         ) : (
           <div className="cv-manager__empty">
             <p>CV не найдено</p>
-            <button 
-              className="btn btn-green" 
-              type="button" 
-              onClick={() => setShowUploadForm(true)}
-            >
-              Загрузить CV
-            </button>
+            <div className="cv-manager__empty-actions">
+              <button 
+                className="btn btn-green" 
+                type="button" 
+                onClick={() => setShowUploadForm(true)}
+              >
+                Загрузить CV
+              </button>
+              <button 
+                className="btn btn-outline" 
+                type="button" 
+                onClick={onClose}
+              >
+                Выйти
+              </button>
+            </div>
           </div>
         )}
 
         {showUploadForm && !isFirstLogin && (
           <div className="cv-manager__upload">
-            <h4>Загрузить новое CV</h4>
+            <h4>{currentCv ? 'Обновить CV' : 'Загрузить новое CV'}</h4>
             <label className="onboarding__upload">
               <input 
                 type="file" 
@@ -807,7 +837,7 @@ function CvManager({
                 onClick={handleUpload}
                 disabled={!selectedFile || isLoading}
               >
-                {isLoading ? 'Загрузка...' : 'Заменить CV'}
+                {isLoading ? 'Загрузка...' : (currentCv ? 'Обновить CV' : 'Загрузить CV')}
               </button>
               <button 
                 className="btn btn-ghost" 
@@ -819,6 +849,13 @@ function CvManager({
                 }}
               >
                 Отмена
+              </button>
+              <button 
+                className="btn btn-outline" 
+                type="button" 
+                onClick={onClose}
+              >
+                Выйти
               </button>
             </div>
           </div>
@@ -932,6 +969,33 @@ function EmployeeOnboarding({
 function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
   const [activeTab, setActiveTab] = React.useState('opportunities')
   const [editMode, setEditMode] = React.useState(false)
+  const [currentCv, setCurrentCv] = React.useState(null)
+  const [isLoadingCv, setIsLoadingCv] = React.useState(true)
+  const [token] = React.useState(localStorage.getItem('token'))
+
+  // Загружаем информацию о CV при монтировании компонента
+  React.useEffect(() => {
+    if (token) {
+      loadCvInfo();
+    }
+  }, [token]);
+
+  const loadCvInfo = async () => {
+    try {
+      setIsLoadingCv(true);
+      const cvs = await api.getMyCvs(token);
+      if (cvs && cvs.length > 0) {
+        setCurrentCv(cvs[0]); // Берем последнее загруженное CV
+      } else {
+        setCurrentCv(null);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки CV:', error);
+      setCurrentCv(null);
+    } finally {
+      setIsLoadingCv(false);
+    }
+  };
 
   const [form, setForm] = React.useState({
     institution: 'Университет Иннополис',
@@ -1022,18 +1086,27 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
       <section className="cv-card">
         <div>
           <h3>Загруженное CV</h3>
-          {data.cvFileName ? (
+          {isLoadingCv ? (
+            <p className="cv-card__placeholder">Загрузка информации о CV...</p>
+          ) : currentCv ? (
             <>
-              <p className="cv-card__file">{data.cvFileName}</p>
-              {data.uploadedAt && <p className="cv-card__time">Загружено: {data.uploadedAt}</p>}
+              <p className="cv-card__file">{currentCv.original_filename}</p>
+              <p className="cv-card__time">
+                Загружено: {new Date(currentCv.uploaded_at).toLocaleString('ru-RU', {
+                  day: '2-digit',
+                  month: 'long',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
             </>
           ) : (
             <p className="cv-card__placeholder">Загрузите CV, чтобы мы показали данные профиля.</p>
           )}
         </div>
         <div className="cv-card__actions">
-          <button className="btn btn-green" type="button" onClick={onReupload}>
-            {data.cvFileName ? 'Управление CV' : 'Загрузить CV'}
+          <button className="btn btn-green" type="button" onClick={onReupload} disabled={isLoadingCv}>
+            {currentCv ? 'Управление CV' : 'Загрузить CV'}
           </button>
           <button className="btn btn-purple" type="button" onClick={onOpenTasks}>
             Посмотреть задачи
