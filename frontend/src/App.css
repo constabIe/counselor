@@ -1650,7 +1650,7 @@
 .field__text { color: var(--text); font-weight:600; }
 .field__input { padding:12px 14px; border-radius:14px; border:1px solid rgba(148,163,184,.28); background: rgba(15,23,42,.75); color: var(--text); }
 .field__input:focus { outline:none; border-color: rgba(168,85,247,.6); box-shadow: 0 0 0 3px rgba(168,85,247,.18); }
-
+.field__input--chat{width: 100%; resize:vertical;}
 
 /* Subcards */
 .subcard { padding:18px; border-radius:18px; border:1px solid rgba(148,163,184,.18); background: rgba(15,23,42,.55); display:flex; flex-direction:column; gap:12px; }
@@ -1666,7 +1666,7 @@
 .msg { padding:12px 14px; border-radius:14px; max-width:80%; }
 .msg--user { align-self:flex-end; background: rgba(168,85,247,0.2); border:1px solid rgba(168,85,247,0.35); }
 .msg--bot { align-self:flex-start; background: rgba(15,23,42,0.65); border:1px solid rgba(148,163,184,0.18); cursor:pointer; }
-.chat__input { display:flex; gap:10px; }
+.chat__input { display:flex; justify-content:space-between; gap:8px; }
 
 /* CV Manager Styles */
 .cv-manager {
@@ -1924,8 +1924,14 @@
   margin-left: 24px;
 }
 
-.assistant-chat .chat {
-  height: 400px;
+.assistant-chat {
+  height: 615px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat {
+  height: 92%;
   display: flex;
   flex-direction: column;
 }

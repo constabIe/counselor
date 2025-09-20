@@ -1401,9 +1401,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
                 </div>
                 <div className="chat__input">
                   <input 
-                    className="field__input" 
+                    className="field__input field__input--chat" 
                     type="text" 
-                    placeholder="Задайте вопрос помощнику..." 
+                    placeholder="Задайте вопрос помощнику" 
                     value={assistantInput} 
                     onChange={(e) => setAssistantInput(e.target.value)} 
                     onKeyDown={(e) => e.key === 'Enter' && sendAssistantMessage()}
