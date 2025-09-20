@@ -216,10 +216,21 @@ export default function App() {
   // Функция для показа XP уведомления
   const showXPNotification = React.useCallback((xpAmount, message) => {
     console.log('showXPNotification called:', { xpAmount, message }); // Отладка
+    
+    // Показываем уведомление
     setXpNotification({
       show: true,
       xpAmount,
       message
+    });
+    
+    // Обновляем XP в userData
+    setUserData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        xp: (prev.xp || 0) + xpAmount
+      };
     });
   }, []);
 
@@ -364,10 +375,12 @@ export default function App() {
     // Показываем уведомление о начислении XP
     showXPNotification(40, 'Вы успешно загрузили CV!');
     
-    // Загружаем обновленную информацию о пользователе
+    // Загружаем обновленную информацию о пользователе с небольшой задержкой
     if (token) {
-      loadUserDataWithBadges(token)
-        .catch(console.error);
+      setTimeout(() => {
+        loadUserDataWithBadges(token)
+          .catch(console.error);
+      }, 500); // Даем время показать локальное обновление XP
     }
   };
 
@@ -1136,6 +1149,21 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
   const [isSaving, setIsSaving] = React.useState(false)
   const [saveMessage, setSaveMessage] = React.useState('')
   
+  // Обернутая версия showXPNotification, которая также обновляет локальный userProfile
+  const showXPNotificationWithLocalUpdate = React.useCallback((xpAmount, message) => {
+    // Вызываем оригинальную функцию
+    showXPNotification(xpAmount, message);
+    
+    // Обновляем локальный userProfile
+    setUserProfile(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        xp: (prev.xp || 0) + xpAmount
+      };
+    });
+  }, [showXPNotification]);
+  
   // Состояния для личного помощника
   const [assistantMessages, setAssistantMessages] = React.useState([
     { from: 'bot', text: 'Привет! Я ваш личный помощник. Помогу с карьерными вопросами, анализом резюме и планированием развития. Что вас интересует?' }
@@ -1209,7 +1237,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
       await api.updateCv(token, currentCv.id, editedCvData);
       
       // Показываем уведомление о начислении XP
-      showXPNotification(10, 'Вы обновили информацию в CV!');
+      showXPNotificationWithLocalUpdate(10, 'Вы обновили информацию в CV!');
       
       // Обновляем локальное состояние
       setCurrentCv(prev => ({
@@ -1362,7 +1390,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
       await loadMyEnrollments(); // Перезагружаем список записей
       
       // Показываем уведомление о начислении XP
-      showXPNotification(20, 'Вы записались на курс!');
+      showXPNotificationWithLocalUpdate(20, 'Вы записались на курс!');
       
       setEnrollmentMessage('Вы успешно записались на курс!');
       setTimeout(() => {
@@ -1385,7 +1413,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
 
   // Функция для отклика на вакансию
   const handleJobApply = (jobTitle) => {
-    showXPNotification(10, `Вы откликнулись на вакансию "${jobTitle}"!`);
+    showXPNotificationWithLocalUpdate(10, `Вы откликнулись на вакансию "${jobTitle}"!`);
   };
 
   // Функция для покупки товара в магазине
@@ -1489,6 +1517,8 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
                 <span className="profile-card__metric-label">XP:</span>
                 {isLoadingProfile ? (
                   <span className="profile-card__metric-value">Загрузка...</span>
+                ) : data && data.xp !== undefined ? (
+                  <span className="profile-card__metric-value">{data.xp}</span>
                 ) : userProfile && userProfile.xp !== undefined ? (
                   <span className="profile-card__metric-value">{userProfile.xp}</span>
                 ) : (
