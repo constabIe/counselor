@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# uv-specific files
+uv.lock
+.uv/
+
 # C extensions
 *.so
 
