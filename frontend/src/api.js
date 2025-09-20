@@ -186,5 +186,17 @@ export const api = {
       await parseError(response);
     }
     return response.json();
+  },
+
+  async getMyFolders(token, page = 1, per_page = 50) {
+    const response = await fetch(`${API_URL}/folders/my?page=${page}&per_page=${per_page}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
   }
 };

@@ -1832,11 +1832,14 @@ function HrDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = React.useState('search')
   const [expandedFolders, setExpandedFolders] = React.useState({})
   const [activeFolder, setActiveFolder] = React.useState(null)
+  const [folders, setFolders] = React.useState([])
+  const [isLoadingFolders, setIsLoadingFolders] = React.useState(false)
 
   // Загружаем профиль HR при монтировании компонента
   React.useEffect(() => {
     if (token) {
       loadHrProfile();
+      loadFolders();
     }
   }, [token]);
 
@@ -1850,6 +1853,20 @@ function HrDashboard({ onLogout }) {
       setHrName('HR Пользователь');
     } finally {
       setIsLoadingProfile(false);
+    }
+  };
+
+  const loadFolders = async () => {
+    try {
+      setIsLoadingFolders(true);
+      const response = await api.getMyFolders(token);
+      setFolders(response.folders || []);
+    } catch (error) {
+      console.error('Ошибка загрузки папок:', error);
+      // В случае ошибки используем статические данные
+      setFolders(hrFolders);
+    } finally {
+      setIsLoadingFolders(false);
     }
   };
 
@@ -1874,8 +1891,8 @@ function HrDashboard({ onLogout }) {
   const [showCvModal, setShowCvModal] = React.useState(false)
 
   const allCvs = React.useMemo(
-    () => hrFolders.flatMap((f) => (f.files || []).map((file) => ({ ...file, folder: f.name }))),
-    []
+    () => folders.flatMap((f) => (f.files || []).map((file) => ({ ...file, folder: f.name }))),
+    [folders]
   )
 
   const sendQuery = () => {
@@ -1970,21 +1987,33 @@ function HrDashboard({ onLogout }) {
 
       {activeTab === 'folders' && (
         <section className="panel">
-          <div className="hr-dashboard__grid">
-            {hrFolders.map((folder) => (
-              <article key={folder.id} className="folder-card" style={{ '--accent': folder.accent }}>
-                <div className="folder-card__icon"><FolderIcon className="icon" /></div>
-                <div className="folder-card__body">
-                  <h2>{folder.name}</h2>
-                  <p>{folder.count} CV</p>
-                  <span>Обновлено {folder.updated}</span>
+          {isLoadingFolders ? (
+            <div style={{ padding: '2rem', textAlign: 'center' }}>
+              <p>Загрузка папок...</p>
+            </div>
+          ) : (
+            <div className="hr-dashboard__grid">
+              {folders.map((folder) => (
+                <article key={folder.id} className="folder-card" style={{ '--accent': '#5eead4' }}>
+                  <div className="folder-card__icon"><FolderIcon className="icon" /></div>
+                  <div className="folder-card__body">
+                    <h2>{folder.name}</h2>
+                    <p>{folder.candidates_count || 0} кандидатов</p>
+                    {folder.description && <p className="folder-description">{folder.description}</p>}
+                    <span>Создано {new Date(folder.created_at).toLocaleDateString('ru-RU')}</span>
+                  </div>
+                  <button className="folder-card__action" type="button" onClick={() => openFolderModal(folder)}>
+                    Открыть папку
+                  </button>
+                </article>
+              ))}
+              {folders.length === 0 && (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>
+                  <p>У вас пока нет папок с CV</p>
                 </div>
-                <button className="folder-card__action" type="button" onClick={() => openFolderModal(folder)}>
-                  Открыть папку
-                </button>
-              </article>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
           {activeFolder && (
             <FolderFilesModal folder={activeFolder} onClose={closeFolderModal} />
           )}
