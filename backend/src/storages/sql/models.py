@@ -183,3 +183,21 @@ class FolderCandidate(Base, table=True):
     added_at: datetime = Field(default_factory=utcnow)
     notes: Optional[str] = Field(default=None, description="Заметки о кандидате")
     is_active: bool = Field(default=True, description="Активна ли запись")
+
+
+class EnrollmentStatus(StrEnum):
+    ENROLLED = "enrolled"      # Записан на курс
+    STARTED = "started"        # Начал изучение
+    COMPLETED = "completed"    # Завершил курс
+
+
+class CourseEnrollment(Base, table=True):
+    __tablename__ = "course_enrollments"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", description="ID пользователя")
+    course_id: uuid.UUID = Field(foreign_key="courses.id", description="ID курса")
+    status: EnrollmentStatus = Field(default=EnrollmentStatus.ENROLLED, description="Статус")
+    enrolled_at: datetime = Field(default_factory=utcnow, description="Дата записи")
+    started_at: Optional[datetime] = Field(default=None, description="Дата начала изучения")
+    is_active: bool = Field(default=True)

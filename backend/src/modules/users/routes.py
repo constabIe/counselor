@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.users import repository as user_repo
-from src.modules.users.schemas import UserRegisterIn, UserLoginIn, TokenResponse, UserOut
+from src.modules.users.schemas import UserRegisterIn, UserLoginIn, TokenResponse, UserOut, RatingPercentileResponse
 from src.storages.sql.dependencies import get_db_session
 from src.modules.users.dependencies import CurrentUserDep
 from src.utils.security import verify_password, create_access_token
@@ -137,3 +137,20 @@ async def get_current_user_info(
         is_active=current_user.is_active,
         xp=current_user.xp,
     )
+
+
+@router.get(
+    "/me/rating-percentile",
+    response_model=RatingPercentileResponse,
+    summary="Получить процентиль рейтинга",
+    description="Возвращает процент пользователей с более низким рейтингом CV"
+)
+async def get_user_rating_percentile(
+    current_user: CurrentUserDep,
+    session: AsyncSession = Depends(get_db_session),
+) -> RatingPercentileResponse:
+    """Получить процентиль рейтинга пользователя"""
+    
+    percentile = await user_repo.get_user_rating_percentile(session, current_user.id)
+    
+    return RatingPercentileResponse(percentile=percentile)

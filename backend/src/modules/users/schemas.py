@@ -38,3 +38,14 @@ class TokenResponse(BaseModel):
 class TokenData(BaseModel):
     user_id: Optional[UUID] = None
     email: Optional[str] = None
+
+
+class RatingPercentileResponse(BaseModel):
+    percentile: Optional[float] = Field(..., description="Процент пользователей с более низким рейтингом (0-100)")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "percentile": 85.5
+            }
+        }
