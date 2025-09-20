@@ -171,5 +171,20 @@ export const api = {
       await parseError(response);
     }
     return response.json();
+  },
+
+  async createJob(token, jobData) {
+    const response = await fetch(`${API_URL}/jobs/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(jobData),
+    });
+    if (!response.ok) {
+      await parseError(response);
+    }
+    return response.json();
   }
 };

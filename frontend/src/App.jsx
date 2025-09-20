@@ -2008,6 +2008,27 @@ function VacanciesTab() {
   const [showJobModal, setShowJobModal] = React.useState(false)
   const [token] = React.useState(localStorage.getItem('token'))
   
+  // Состояния для создания новой вакансии
+  const [isCreating, setIsCreating] = React.useState(false)
+  const [createError, setCreateError] = React.useState(null)
+  const [createSuccess, setCreateSuccess] = React.useState('')
+  const [newJob, setNewJob] = React.useState({
+    title: '',
+    department: '',
+    level: 'intern',
+    employment_type: 'full_time',
+    location: '',
+    remote_available: false,
+    description: '',
+    requirements: '',
+    responsibilities: '',
+    required_skills: [],
+    min_experience_years: 0,
+    max_experience_years: 0,
+    average_salary: 0,
+    salary_currency: 'RUB'
+  })
+  
   // Загружаем вакансии при монтировании компонента
   React.useEffect(() => {
     if (token) {
@@ -2037,6 +2058,76 @@ function VacanciesTab() {
   const closeJobModal = () => {
     setShowJobModal(false);
     setSelectedJob(null);
+  };
+
+  // Функции для создания новой вакансии
+  const handleInputChange = (field, value) => {
+    setNewJob(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSkillsChange = (value) => {
+    // Разбиваем строку навыков по запятым и убираем лишние пробелы
+    const skillsArray = value.split(',').map(skill => skill.trim()).filter(skill => skill.length > 0);
+    setNewJob(prev => ({
+      ...prev,
+      required_skills: skillsArray
+    }));
+  };
+
+  const handleCreateJob = async () => {
+    try {
+      setIsCreating(true);
+      setCreateError(null);
+      setCreateSuccess('');
+
+      // Валидация обязательных полей
+      if (!newJob.title.trim()) {
+        setCreateError('Название вакансии обязательно');
+        return;
+      }
+      if (!newJob.department.trim()) {
+        setCreateError('Отдел обязателен');
+        return;
+      }
+
+      // Создаем вакансию
+      await api.createJob(token, newJob);
+      
+      // Сбрасываем форму
+      setNewJob({
+        title: '',
+        department: '',
+        level: 'intern',
+        employment_type: 'full_time',
+        location: '',
+        remote_available: false,
+        description: '',
+        requirements: '',
+        responsibilities: '',
+        required_skills: [],
+        min_experience_years: 0,
+        max_experience_years: 0,
+        average_salary: 0,
+        salary_currency: 'RUB'
+      });
+
+      setCreateSuccess('Вакансия успешно создана!');
+      
+      // Перезагружаем список вакансий
+      await loadJobs();
+      
+      // Убираем сообщение об успехе через 3 секунды
+      setTimeout(() => setCreateSuccess(''), 3000);
+      
+    } catch (err) {
+      console.error('Ошибка создания вакансии:', err);
+      setCreateError(err.message || 'Ошибка при создании вакансии');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const formatSalary = (salary, currency) => {
@@ -2115,21 +2206,209 @@ function VacanciesTab() {
     <section className="panel">
       <div className="panel__header">
         <h3>Свободные вакансии</h3>
-        <button 
-          className="btn btn-ghost btn-small" 
-          onClick={loadJobs}
-          title="Обновить список вакансий"
-        >
-          Обновить
-        </button>
+      </div>
+
+      {/* Форма создания новой вакансии */}
+      <div className="job-create-form">
+        <h4>Создать новую вакансию</h4>
+        
+        <div className="form-grid form-grid--wide">
+          <label className="field">
+            <span className="field__label">Название вакансии *</span>
+            <input 
+              className="field__input" 
+              type="text" 
+              value={newJob.title}
+              onChange={(e) => handleInputChange('title', e.target.value)}
+              placeholder="Frontend Developer"
+            />
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Отдел *</span>
+            <input 
+              className="field__input" 
+              type="text" 
+              value={newJob.department}
+              onChange={(e) => handleInputChange('department', e.target.value)}
+              placeholder="IT"
+            />
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Уровень</span>
+            <select 
+              className="field__input" 
+              value={newJob.level}
+              onChange={(e) => handleInputChange('level', e.target.value)}
+            >
+              <option value="intern">Стажер</option>
+              <option value="junior">Junior</option>
+              <option value="middle">Middle</option>
+              <option value="senior">Senior</option>
+              <option value="lead">Lead</option>
+            </select>
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Тип занятости</span>
+            <select 
+              className="field__input" 
+              value={newJob.employment_type}
+              onChange={(e) => handleInputChange('employment_type', e.target.value)}
+            >
+              <option value="full_time">Полная занятость</option>
+              <option value="part_time">Частичная занятость</option>
+              <option value="contract">Контракт</option>
+              <option value="internship">Стажировка</option>
+            </select>
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Локация</span>
+            <input 
+              className="field__input" 
+              type="text" 
+              value={newJob.location}
+              onChange={(e) => handleInputChange('location', e.target.value)}
+              placeholder="Казань"
+            />
+          </label>
+          
+          <label className="field field--checkbox">
+            <input 
+              type="checkbox" 
+              checked={newJob.remote_available}
+              onChange={(e) => handleInputChange('remote_available', e.target.checked)}
+            />
+            <span className="field__label">Возможна удаленная работа</span>
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Мин. опыт (лет)</span>
+            <input 
+              className="field__input" 
+              type="number" 
+              min="0"
+              value={newJob.min_experience_years}
+              onChange={(e) => handleInputChange('min_experience_years', parseInt(e.target.value) || 0)}
+            />
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Макс. опыт (лет)</span>
+            <input 
+              className="field__input" 
+              type="number" 
+              min="0"
+              value={newJob.max_experience_years}
+              onChange={(e) => handleInputChange('max_experience_years', parseInt(e.target.value) || 0)}
+            />
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Зарплата</span>
+            <input 
+              className="field__input" 
+              type="number" 
+              min="0"
+              value={newJob.average_salary}
+              onChange={(e) => handleInputChange('average_salary', parseInt(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Валюта</span>
+            <select 
+              className="field__input" 
+              value={newJob.salary_currency}
+              onChange={(e) => handleInputChange('salary_currency', e.target.value)}
+            >
+              <option value="RUB">RUB</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="form-grid form-grid--full">
+          <label className="field">
+            <span className="field__label">Описание</span>
+            <textarea 
+              className="field__input field__input--textarea" 
+              rows="3"
+              value={newJob.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              placeholder="Описание вакансии..."
+            />
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Требования</span>
+            <textarea 
+              className="field__input field__input--textarea" 
+              rows="3"
+              value={newJob.requirements}
+              onChange={(e) => handleInputChange('requirements', e.target.value)}
+              placeholder="Требования к кандидату..."
+            />
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Обязанности</span>
+            <textarea 
+              className="field__input field__input--textarea" 
+              rows="3"
+              value={newJob.responsibilities}
+              onChange={(e) => handleInputChange('responsibilities', e.target.value)}
+              placeholder="Обязанности..."
+            />
+          </label>
+          
+          <label className="field">
+            <span className="field__label">Необходимые навыки</span>
+            <input 
+              className="field__input" 
+              type="text" 
+              value={newJob.required_skills.join(', ')}
+              onChange={(e) => handleSkillsChange(e.target.value)}
+              placeholder="React, JavaScript, HTML, CSS (через запятую)"
+            />
+          </label>
+        </div>
+
+        {createError && (
+          <div className="auth__error" style={{ marginTop: 16 }}>
+            {createError}
+          </div>
+        )}
+        
+        {createSuccess && (
+          <div className="create-success" style={{ marginTop: 16 }}>
+            {createSuccess}
+          </div>
+        )}
+
+        <div className="job-create-actions">
+          <button 
+            className="btn btn-purple" 
+            type="button" 
+            onClick={handleCreateJob}
+            disabled={isCreating}
+          >
+            {isCreating ? 'Создание...' : 'Добавить вакансию'}
+          </button>
+        </div>
       </div>
       
+      {/* Список существующих вакансий */}
       {vacancies.length === 0 ? (
         <div style={{ padding: 24, textAlign: 'center' }}>
           Нет доступных вакансий
         </div>
       ) : (
-        <div className="jobs" style={{ marginTop: 16 }}>
+        <div className="jobs" style={{ marginTop: 24 }}>
           {vacancies.map((job) => (
             <article 
               key={job.id} 
