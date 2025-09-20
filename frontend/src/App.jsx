@@ -971,6 +971,19 @@ function EmployeeOnboarding({
 
 
 function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
+  // Функция для перевода уровней
+  const getJobLevelLabel = (level) => {
+    const levelLabels = {
+      'intern': 'Стажер',
+      'junior': 'Junior',
+      'middle': 'Middle',
+      'senior': 'Senior',
+      'lead': 'Lead',
+      'manager': 'Менеджер'
+    };
+    return levelLabels[level] || level;
+  };
+
   const [activeTab, setActiveTab] = React.useState('opportunities')
   const [editMode, setEditMode] = React.useState(false)
   const [currentCv, setCurrentCv] = React.useState(null)
@@ -999,6 +1012,10 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
   ])
   const [assistantInput, setAssistantInput] = React.useState('')
   const [completedTasks, setCompletedTasks] = React.useState([])
+  
+  // Состояния для вакансий
+  const [jobs, setJobs] = React.useState([])
+  const [isLoadingJobs, setIsLoadingJobs] = React.useState(false)
 
   // Загружаем информацию о CV и профиле при монтировании компонента
   React.useEffect(() => {
@@ -1007,6 +1024,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
       loadUserProfile();
       loadCourses();
       loadMyEnrollments();
+      loadJobs();
     }
   }, [token]);
 
@@ -1159,6 +1177,26 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
     }
   };
 
+  // Функция для загрузки вакансий
+  const loadJobs = async () => {
+    try {
+      setIsLoadingJobs(true);
+      const jobsResponse = await api.getJobs(token);
+      // jobsResponse возвращает объект с полями: jobs, total, page, per_page
+      setJobs(jobsResponse.jobs || []);
+    } catch (error) {
+      console.error('Ошибка загрузки вакансий:', error);
+      // В случае ошибки используем статические данные как fallback
+      setJobs([
+        { id: 'j1', title: 'Frontend Junior', company: 'TechNova', tags: ['React', 'JS', 'HTML/CSS'] },
+        { id: 'j2', title: 'Data Analyst', company: 'DataWise', tags: ['SQL', 'Python', 'BI'] },
+        { id: 'j3', title: 'QA Engineer', company: 'QualityLab', tags: ['Manual', 'API', 'Postman'] },
+      ]);
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  };
+
   // Функция для проверки записи на курс
   const isEnrolledInCourse = (courseId) => {
     return myEnrollments.some(enrollment => enrollment.course_id === courseId);
@@ -1234,12 +1272,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
     about: '',
     testResults: 'Отсутствуют',
   })
-
-  const jobs = [
-    { id: 'j1', title: 'Frontend Junior', company: 'TechNova', tags: ['React', 'JS', 'HTML/CSS'] },
-    { id: 'j2', title: 'Data Analyst', company: 'DataWise', tags: ['SQL', 'Python', 'BI'] },
-    { id: 'j3', title: 'QA Engineer', company: 'QualityLab', tags: ['Manual', 'API', 'Postman'] },
-  ]
 
   const roadmap = [
     '3 мес: закрепить основы и закрыть пробелы',
@@ -1420,20 +1452,47 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
 
       {activeTab === 'opportunities' && (
         <section className="panel">
-          <div className="jobs">
-            {jobs.map((j) => (
-              <article key={j.id} className="job-card">
-                <h4 className="job-card__title">{j.title}</h4>
-                <p className="job-card__company">{j.company}</p>
-                <div className="job-card__tags">
-                  {j.tags.map((t) => (
-                    <span key={t} className="tag">{t}</span>
-                  ))}
+          {isLoadingJobs ? (
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+              <p>Загружаем вакансии...</p>
+            </div>
+          ) : (
+            <div className="jobs">
+              {jobs.length > 0 ? jobs.map((job) => (
+                <article key={job.id} className="job-card">
+                  <h4 className="job-card__title">{job.title}</h4>
+                  <p className="job-card__company">{job.department}</p>
+                  <div className="job-card__meta">
+                    <span className="job-card__level">{getJobLevelLabel(job.level)}</span>
+                    <span className="job-card__location">
+                      {job.location || 'Не указано'} {job.remote_available && '• Удаленно'}
+                    </span>
+                    {job.average_salary && (
+                      <span className="job-card__salary">
+                        {new Intl.NumberFormat('ru-RU').format(job.average_salary)} {job.salary_currency}
+                      </span>
+                    )}
+                  </div>
+                  <div className="job-card__description">
+                    <p>{job.description}</p>
+                  </div>
+                  <div className="job-card__tags">
+                    {job.required_skills && job.required_skills.map((skill) => (
+                      <span key={skill} className="tag">{skill}</span>
+                    ))}
+                  </div>
+                  <button className="btn btn-outline job-card__action" type="button">
+                    Откликнуться
+                  </button>
+                </article>
+              )) : (
+                <div className="empty-state">
+                  <p>Нет доступных вакансий</p>
                 </div>
-                <button className="btn btn-outline job-card__action" type="button">Откликнуться</button>
-              </article>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
         </section>
       )}
 
