@@ -223,7 +223,7 @@ async def get_folder_candidates(
     
     # Получение кандидатов с информацией о пользователе
     stmt = select(FolderCandidate, User).join(
-        User, FolderCandidate.user_id == User.id
+        User, FolderCandidate.user_id == User.id # type: ignore
     ).where(
         and_(
             FolderCandidate.folder_id == folder_id,

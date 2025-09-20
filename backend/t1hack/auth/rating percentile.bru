@@ -1,0 +1,15 @@
+meta {
+  name: rating percentile
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8000/auth/me
+  body: json
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

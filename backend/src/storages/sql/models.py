@@ -183,3 +183,48 @@ class FolderCandidate(Base, table=True):
     added_at: datetime = Field(default_factory=utcnow)
     notes: Optional[str] = Field(default=None, description="Заметки о кандидате")
     is_active: bool = Field(default=True, description="Активна ли запись")
+
+
+class EnrollmentStatus(StrEnum):
+    ENROLLED = "enrolled"      # Записан на курс
+    STARTED = "started"        # Начал изучение
+    COMPLETED = "completed"    # Завершил курс
+
+
+class CourseEnrollment(Base, table=True):
+    __tablename__ = "course_enrollments"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", description="ID пользователя")
+    course_id: uuid.UUID = Field(foreign_key="courses.id", description="ID курса")
+    status: EnrollmentStatus = Field(default=EnrollmentStatus.ENROLLED, description="Статус")
+    enrolled_at: datetime = Field(default_factory=utcnow, description="Дата записи")
+    started_at: Optional[datetime] = Field(default=None, description="Дата начала изучения")
+    is_active: bool = Field(default=True)
+
+
+class BadgeCategory(StrEnum):
+    EDUCATION = "education"
+    CAREER = "career"
+    SKILLS = "skills"
+    ACTIVITY = "activity"
+
+
+class Badge(Base, table=True):
+    __tablename__ = "badges"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    code: str = Field(max_length=50, unique=True)
+    name: str = Field(max_length=100)
+    category: BadgeCategory
+    xp_reward: int = Field(default=10)
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class UserBadge(Base, table=True):
+    __tablename__ = "user_badges"  # type: ignore
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id")
+    badge_id: uuid.UUID = Field(foreign_key="badges.id")
+    earned_at: datetime = Field(default_factory=utcnow)
