@@ -1,0 +1,3 @@
+hrcounselor.ru {
+    reverse_proxy backend:8000
+}
