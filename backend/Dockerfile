@@ -14,20 +14,13 @@ ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
-# Сначала копируем только зависимости, чтобы кэшировались слои
 COPY ./backend/pyproject.toml ./backend/uv.lock ./
 RUN uv sync --frozen --no-dev
 
-# Копируем исходники
 COPY ./backend .
 
 COPY ./deploy/.env .env
 
-# Копируем start.sh и делаем его исполняемым
-COPY ./deploy/scripts/start.sh /start.sh
-RUN chmod +x /start.sh
-
 EXPOSE 8000
 
-# Запуск через стартовый скрипт (ждём БД → применяем миграции → стартуем uvicorn)
-CMD ["/start.sh"]
+CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn src.api.app:app --host ${HOST:-0.0.0.0} --port ${PORT:-8000}"]
