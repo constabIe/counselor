@@ -1826,10 +1826,32 @@ function EditableField({ label, value, onChange, edit, multiline }) {
 }
 
 function HrDashboard({ onLogout }) {
-  const hrName = 'Садыков Хасан Альбертович'
+  const [hrName, setHrName] = React.useState('HR Пользователь')
+  const [isLoadingProfile, setIsLoadingProfile] = React.useState(true)
+  const [token] = React.useState(localStorage.getItem('token'))
   const [activeTab, setActiveTab] = React.useState('search')
   const [expandedFolders, setExpandedFolders] = React.useState({})
   const [activeFolder, setActiveFolder] = React.useState(null)
+
+  // Загружаем профиль HR при монтировании компонента
+  React.useEffect(() => {
+    if (token) {
+      loadHrProfile();
+    }
+  }, [token]);
+
+  const loadHrProfile = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const profile = await api.getUserProfile(token);
+      setHrName(profile.full_name || profile.name || profile.email || 'HR Пользователь');
+    } catch (error) {
+      console.error('Ошибка загрузки профиля HR:', error);
+      setHrName('HR Пользователь');
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
 
   const [filters, setFilters] = React.useState({
     ageMin: 21,
@@ -1887,9 +1909,13 @@ function HrDashboard({ onLogout }) {
 
       <div className="employee-dashboard__top">
         <div className="profile-card">
-          <div className="profile-card__avatar">{hrName.slice(0, 1)}</div>
+          <div className="profile-card__avatar">
+            {isLoadingProfile ? '...' : hrName.slice(0, 1)}
+          </div>
           <div>
-            <h2 className="profile-card__name">{hrName}</h2>
+            <h2 className="profile-card__name">
+              {isLoadingProfile ? 'Загрузка...' : hrName}
+            </h2>
             <div className="profile-card__metrics">
               <div className="profile-card__metric">
                 <span className="profile-card__metric-label">Роль:</span>
