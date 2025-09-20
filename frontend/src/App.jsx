@@ -130,11 +130,13 @@ const hrFolders = [
 export default function App() {
   const [token, setToken] = React.useState(localStorage.getItem('token'));
   const [userData, setUserData] = React.useState(null);
+  const [isFirstLogin, setIsFirstLogin] = React.useState(false);
+  const [showCvManager, setShowCvManager] = React.useState(false);
 
   React.useEffect(() => {
     if (token) {
       api.getUserProfile(token)
-        .then(data => {
+        .then(async data => {
           // map backend profile to the shape EmployeeDashboard expects
           const mapped = {
             fullName: data.full_name || data.fullName || data.name || data.email || 'Пользователь',
@@ -150,10 +152,31 @@ export default function App() {
           setUserData(mapped);
 
           const role = (data.role || data.user_role || '').toString().toLowerCase();
+          
           if (role === 'hr') {
             setView('hrDashboard');
           } else {
-            setView('employeeDashboard');
+            // Для сотрудников проверяем наличие CV через API
+            try {
+              const cvs = await api.getMyCvs(token);
+              const hasCV = cvs && cvs.length > 0;
+              
+              if (!hasCV) {
+                // Если CV нет - показываем CvManager как первый вход
+                setIsFirstLogin(true);
+                setShowCvManager(true);
+                setView('cvManager');
+              } else {
+                // Если CV есть - переходим в дашборд
+                setView('employeeDashboard');
+              }
+            } catch (error) {
+              // Если ошибка при получении CV - считаем что CV нет
+              console.error('Error checking CV:', error);
+              setIsFirstLogin(true);
+              setShowCvManager(true);
+              setView('cvManager');
+            }
           }
         })
         .catch(() => {
@@ -163,6 +186,7 @@ export default function App() {
         });
     }
   }, [token]);
+  
   const [view, setView] = useState('landing')
   const [onboardingSlide, setOnboardingSlide] = useState(0)
   const [employeeData, setEmployeeData] = useState(() => makeEmployeeData())
@@ -181,7 +205,7 @@ export default function App() {
     setView('employeeOnboarding')
   }
 
-  const handleCvUploaded = (fileName) => {
+  const handleOldCvUploaded = (fileName) => {
     if (!fileName) {
       return
     }
@@ -210,6 +234,45 @@ export default function App() {
     setView('hrDashboard')
   }
 
+  const handleCvUploaded = () => {
+    setIsFirstLogin(false);
+    setShowCvManager(false);
+    setView('employeeDashboard');
+    
+    // Загружаем обновленную информацию о пользователе
+    if (token) {
+      api.getUserProfile(token)
+        .then(data => {
+          const mapped = {
+            fullName: data.full_name || data.fullName || data.name || data.email || 'Пользователь',
+            rating: (data.rating !== undefined && data.rating !== null) ? data.rating : 0,
+            xp: (data.xp !== undefined && data.xp !== null) ? data.xp : 0,
+            badges: Array.isArray(data.badges) ? data.badges : [],
+            cvFileName: data.cv_file_name || data.cvFileName || data.cv || '',
+            uploadedAt: data.uploaded_at || data.uploadedAt || '',
+            __raw: data,
+          };
+          setUserData(mapped);
+        })
+        .catch(console.error);
+    }
+  };
+
+  const handleShowCvManager = () => {
+    setIsFirstLogin(false);
+    setShowCvManager(true);
+    setView('cvManager');
+  };
+
+  const handleCloseCvManager = () => {
+    setShowCvManager(false);
+    if (isFirstLogin) {
+      goLanding();
+    } else {
+      setView('employeeDashboard');
+    }
+  };
+
   return (
     <div className={`app app--${view}`}>
       {view === 'landing' && <LandingPage onStart={() => setView('auth')} />}
@@ -228,9 +291,19 @@ export default function App() {
         <EmployeeOnboarding
           currentSlide={onboardingSlide}
           onChangeSlide={setOnboardingSlide}
-          onComplete={handleCvUploaded}
+          onComplete={handleOldCvUploaded}
           onClose={goLanding}
           existingFileName={employeeData.cvFileName}
+        />
+      )}
+
+      {(view === 'cvManager' || showCvManager) && (
+        <CvManager
+          isFirstLogin={isFirstLogin}
+          token={token}
+          onCvUploaded={handleCvUploaded}
+          onClose={handleCloseCvManager}
+          userData={userData}
         />
       )}
 
@@ -238,10 +311,7 @@ export default function App() {
         <EmployeeDashboard
           data={userData || employeeData}
           onLogout={goLanding}
-          onReupload={() => {
-            setOnboardingSlide(2)
-            setView('employeeOnboarding')
-          }}
+          onReupload={handleShowCvManager}
           onOpenTasks={() => setShowTaskModal(true)}
         />
       )}
@@ -340,6 +410,7 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
 
       const response = await api.register(data);
       localStorage.setItem('token', response.access_token);
+      
       // notify parent about token and navigate
       if (typeof onSetToken === 'function') onSetToken(response.access_token);
       if (registerRole === 'employee') {
@@ -502,6 +573,261 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
     </div>
   )
 }
+
+function CvManager({ 
+  isFirstLogin, 
+  token, 
+  onCvUploaded, 
+  onClose, 
+  userData 
+}) {
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+  const [selectedFile, setSelectedFile] = React.useState(null);
+  const [currentCv, setCurrentCv] = React.useState(null);
+  const [showUploadForm, setShowUploadForm] = React.useState(isFirstLogin);
+
+  // Загружаем информацию о текущем CV при монтировании (если не первый вход)
+  React.useEffect(() => {
+    if (!isFirstLogin && token) {
+      loadCurrentCv();
+    }
+  }, [isFirstLogin, token]);
+
+  const loadCurrentCv = async () => {
+    try {
+      setIsLoading(true);
+      const cvs = await api.getMyCvs(token);
+      if (cvs && cvs.length > 0) {
+        setCurrentCv(cvs[0]); // Берем последнее загруженное CV
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки CV:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        setError('Пожалуйста, выберите PDF файл');
+        return;
+      }
+      if (file.size > 15 * 1024 * 1024) { // 15MB
+        setError('Размер файла не должен превышать 15 МБ');
+        return;
+      }
+      setSelectedFile(file);
+      setError(null);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setError('Пожалуйста, выберите файл');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await api.uploadCv(token, selectedFile);
+      
+      if (isFirstLogin) {
+        // При первом входе - переходим в личный кабинет
+        onCvUploaded();
+      } else {
+        // При замене CV - обновляем данные
+        await loadCurrentCv();
+        setShowUploadForm(false);
+        setSelectedFile(null);
+      }
+    } catch (err) {
+      setError(err.message || 'Ошибка при загрузке файла');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!currentCv) return;
+
+    try {
+      setIsLoading(true);
+      const blob = await api.downloadCv(token, currentCv.id);
+      
+      // Создаем ссылку для скачивания
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = currentCv.original_filename || 'cv.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError(err.message || 'Ошибка при скачивании файла');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isFirstLogin) {
+    return (
+      <div className="onboarding">
+        <div className="onboarding__card">
+          <button className="icon-button icon-button--ghost onboarding__close" type="button" onClick={onClose}>
+            <CloseIcon className="icon icon--small" />
+          </button>
+
+          <div className="onboarding__content">
+            <div className="onboarding__badge">Загрузка CV</div>
+            <h2>Загрузите ваше резюме (CV)</h2>
+            
+            <div className="cv-recommendations">
+              <h3>Рекомендации для идеального CV:</h3>
+              <ul className="onboarding__list">
+                {cvRecommendations.map((rec, index) => (
+                  <li key={index}>{rec}</li>
+                ))}
+              </ul>
+            </div>
+
+            <label className="onboarding__upload">
+              <input 
+                type="file" 
+                accept=".pdf" 
+                onChange={handleFileSelect}
+                disabled={isLoading}
+              />
+              <span>
+                {selectedFile ? selectedFile.name : 'Перетащите PDF файл или выберите его'}
+              </span>
+            </label>
+            
+            <p className="onboarding__note">Поддерживаются PDF файлы до 15 МБ.</p>
+            
+            {error && <div className="auth__error">{error}</div>}
+          </div>
+
+          <footer className="onboarding__footer">
+            <div className="onboarding__actions">
+              <button 
+                className="btn btn-green btn-full" 
+                type="button" 
+                onClick={handleUpload}
+                disabled={!selectedFile || isLoading}
+              >
+                {isLoading ? 'Загрузка...' : 'Загрузить и перейти в кабинет'}
+              </button>
+            </div>
+          </footer>
+        </div>
+      </div>
+    );
+  }
+
+  // Повторный вход - показываем информацию о текущем CV
+  return (
+    <div className="cv-manager">
+      <div className="cv-manager__content">
+        {isLoading && !currentCv ? (
+          <div className="cv-manager__loading">Загрузка...</div>
+        ) : currentCv ? (
+          <div className="cv-manager__current">
+            <h3>Ваше CV</h3>
+            <div className="cv-card">
+              <div className="cv-card__info">
+                <p className="cv-card__file">{currentCv.original_filename}</p>
+                <p className="cv-card__time">
+                  Загружено: {new Date(currentCv.uploaded_at).toLocaleString('ru-RU', {
+                    day: '2-digit',
+                    month: 'long',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+              </div>
+              <div className="cv-card__actions">
+                <button 
+                  className="btn btn-green" 
+                  type="button" 
+                  onClick={handleDownload}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Загрузка...' : 'Скачать CV'}
+                </button>
+                <button 
+                  className="btn btn-purple" 
+                  type="button" 
+                  onClick={() => setShowUploadForm(true)}
+                >
+                  Загрузить новое CV
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="cv-manager__empty">
+            <p>CV не найдено</p>
+            <button 
+              className="btn btn-green" 
+              type="button" 
+              onClick={() => setShowUploadForm(true)}
+            >
+              Загрузить CV
+            </button>
+          </div>
+        )}
+
+        {showUploadForm && !isFirstLogin && (
+          <div className="cv-manager__upload">
+            <h4>Загрузить новое CV</h4>
+            <label className="onboarding__upload">
+              <input 
+                type="file" 
+                accept=".pdf" 
+                onChange={handleFileSelect}
+                disabled={isLoading}
+              />
+              <span>
+                {selectedFile ? selectedFile.name : 'Выберите PDF файл'}
+              </span>
+            </label>
+            
+            {error && <div className="auth__error">{error}</div>}
+            
+            <div className="cv-manager__upload-actions">
+              <button 
+                className="btn btn-green" 
+                type="button" 
+                onClick={handleUpload}
+                disabled={!selectedFile || isLoading}
+              >
+                {isLoading ? 'Загрузка...' : 'Заменить CV'}
+              </button>
+              <button 
+                className="btn btn-ghost" 
+                type="button" 
+                onClick={() => {
+                  setShowUploadForm(false);
+                  setSelectedFile(null);
+                  setError(null);
+                }}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function EmployeeOnboarding({
   currentSlide,
   onChangeSlide,
@@ -707,7 +1033,7 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks }) {
         </div>
         <div className="cv-card__actions">
           <button className="btn btn-green" type="button" onClick={onReupload}>
-            Загрузить CV
+            {data.cvFileName ? 'Управление CV' : 'Загрузить CV'}
           </button>
           <button className="btn btn-purple" type="button" onClick={onOpenTasks}>
             Посмотреть задачи
