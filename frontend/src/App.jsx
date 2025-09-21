@@ -1171,6 +1171,12 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
   const [assistantInput, setAssistantInput] = React.useState('')
   const [completedTasks, setCompletedTasks] = React.useState([])
   
+  // Состояния для WebSocket чата
+  const [chatConnected, setChatConnected] = React.useState(false)
+  const [chatError, setChatError] = React.useState('')
+  const [isTyping, setIsTyping] = React.useState(false)
+  const [currentAIMessage, setCurrentAIMessage] = React.useState('')
+  
   // Состояния для вакансий
   const [jobs, setJobs] = React.useState([])
   const [isLoadingJobs, setIsLoadingJobs] = React.useState(false)
@@ -1185,6 +1191,70 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
       loadJobs();
     }
   }, [token]);
+
+  // Подключение к WebSocket чату
+  React.useEffect(() => {
+    if (token && userProfile?.id) {
+      connectToChat();
+    }
+    
+    // Отключение при размонтировании
+    return () => {
+      api.chat.disconnect();
+    };
+  }, [token, userProfile?.id]);
+
+  const connectToChat = () => {
+    if (!userProfile?.id || !token) return;
+
+    api.chat.connect(userProfile.id, token, {
+      onConnect: () => {
+        console.log('Подключено к чату');
+        setChatConnected(true);
+        setChatError('');
+      },
+      
+      onMessage: (data) => {
+        switch (data.type) {
+          case 'user_message':
+            // Подтверждение получения сообщения пользователя
+            break;
+            
+          case 'ai_chunk':
+            // Добавляем чанк к текущему ответу AI
+            setCurrentAIMessage(prev => prev + data.chunk);
+            break;
+            
+          case 'ai_complete':
+            // AI закончил отвечать
+            setAssistantMessages(prev => [...prev, { from: 'bot', text: data.full_message }]);
+            setCurrentAIMessage('');
+            setIsTyping(false);
+            break;
+            
+          case 'error':
+            // Обработка ошибки
+            setChatError(data.message);
+            setIsTyping(false);
+            setCurrentAIMessage('');
+            break;
+        }
+      },
+      
+      onError: (error) => {
+        console.error('Chat error:', error);
+        setChatConnected(false);
+        setChatError(error);
+        setIsTyping(false);
+      },
+      
+      onDisconnect: () => {
+        console.log('Отключено от чата');
+        setChatConnected(false);
+        setIsTyping(false);
+      }
+    });
+  };
 
   const loadCvInfo = async () => {
     try {
@@ -1463,21 +1533,34 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
     const text = assistantInput.trim()
     if (!text) return
     
+    // Добавляем сообщение пользователя в чат
     setAssistantMessages(prev => [...prev, { from: 'user', text }])
     setAssistantInput('')
     
-    // Имитация ответа бота (заглушка)
-    setTimeout(() => {
-      const botResponses = [
-        'Интересный вопрос! Давайте разберем это подробнее.',
-        'Я анализирую ваш запрос. Вот что я могу предложить...',
-        'Основываясь на вашем профиле, рекомендую следующее:',
-        'Хороший вопрос! Это поможет в вашем карьерном развитии.',
-        'Давайте составим план действий по вашему запросу.'
-      ]
-      const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)]
-      setAssistantMessages(prev => [...prev, { from: 'bot', text: randomResponse }])
-    }, 1000)
+    // Отправляем сообщение через WebSocket
+    if (api.chat.isConnected()) {
+      setIsTyping(true);
+      setCurrentAIMessage('');
+      setChatError('');
+      
+      const success = api.chat.sendMessage(text);
+      if (!success) {
+        setChatError('Не удалось отправить сообщение');
+        setIsTyping(false);
+      }
+    } else {
+      setChatError('Нет подключения к чату. Попробуйте перезагрузить страницу.');
+      
+      // Fallback: имитация ответа бота (заглушка) для случая отсутствия подключения
+      setTimeout(() => {
+        const botResponses = [
+          'Извините, сейчас у меня проблемы с подключением. Попробуйте позже.',
+          'Не могу подключиться к серверу. Проверьте интернет-соединение.',
+        ]
+        const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)]
+        setAssistantMessages(prev => [...prev, { from: 'bot', text: randomResponse }])
+      }, 1000)
+    }
   }
 
   const toggleTaskCompletion = (taskId) => {
@@ -1597,7 +1680,34 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
             </div>
             
             <div className="assistant-chat">
-              <h3>Чат с помощником</h3>
+              <div className="chat-header">
+                <h3>Чат с помощником</h3>
+                <div className="chat-status">
+                  {chatConnected ? (
+                    <span className="status-indicator status-indicator--connected">
+                      🟢 Подключено
+                    </span>
+                  ) : (
+                    <span className="status-indicator status-indicator--disconnected">
+                      🔴 Не подключено
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {chatError && (
+                <div className="chat-error">
+                  ⚠️ {chatError}
+                  <button 
+                    className="retry-button" 
+                    onClick={connectToChat}
+                    type="button"
+                  >
+                    Переподключиться
+                  </button>
+                </div>
+              )}
+              
               <div className="chat">
                 <div className="chat__messages">
                   {assistantMessages.map((message, index) => (
@@ -1605,18 +1715,43 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
                       {message.text}
                     </div>
                   ))}
+                  
+                  {/* Показываем текущий ответ AI в реальном времени */}
+                  {currentAIMessage && (
+                    <div className="msg msg--bot msg--streaming">
+                      {currentAIMessage}
+                      <span className="typing-cursor">|</span>
+                    </div>
+                  )}
+                  
+                  {/* Индикатор печати */}
+                  {isTyping && !currentAIMessage && (
+                    <div className="msg msg--bot msg--typing">
+                      <div className="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="chat__input">
                   <input 
                     className="field__input field__input--chat" 
                     type="text" 
-                    placeholder="Задайте вопрос помощнику" 
+                    placeholder={chatConnected ? "Задайте вопрос помощнику" : "Подключение к чату..."} 
                     value={assistantInput} 
                     onChange={(e) => setAssistantInput(e.target.value)} 
                     onKeyDown={(e) => e.key === 'Enter' && sendAssistantMessage()}
+                    disabled={!chatConnected || isTyping}
                   />
-                  <button className="btn btn-green" type="button" onClick={sendAssistantMessage}>
-                    Отправить
+                  <button 
+                    className="btn btn-green" 
+                    type="button" 
+                    onClick={sendAssistantMessage}
+                    disabled={!chatConnected || isTyping || !assistantInput.trim()}
+                  >
+                    {isTyping ? 'Отправляю...' : 'Отправить'}
                   </button>
                 </div>
               </div>

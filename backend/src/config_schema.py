@@ -50,6 +50,20 @@ class Settings(SettingBaseModel):
     
     # Environment
     environment: Environment = Environment.DEVELOPMENT
+    
+    # LLM API settings
+    llm_api_url: str = Field(
+        default="https://llm.t1v.scibox.tech/completions",
+        description="LLM API URL"
+    )
+    llm_api_token: SecretStr = Field(
+        default=SecretStr("sk-oWtKHDq9UET7fCG0JaJDWQ"),
+        description="LLM API token"
+    )
+    llm_model: str = Field(
+        default="Qwen2.5-72B-Instruct-AWQ",
+        description="LLM model name"
+    )
 
     # @classmethod
     # def from_yaml(cls, path: Path) -> "Settings":

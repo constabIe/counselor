@@ -9,6 +9,7 @@ from src.modules.generation.routes import router as generation_router
 from src.modules.jobs.routes import router as jobs_router
 from src.modules.folders.routes import router as folders_router
 from src.modules.badges.router import router as badges_router
+from src.modules.llm.routes import router as llm_router
 
 # Создание FastAPI приложения
 app = FastAPI(
@@ -36,6 +37,7 @@ app.include_router(generation_router)
 app.include_router(jobs_router)
 app.include_router(folders_router)
 app.include_router(badges_router)
+app.include_router(llm_router, prefix="/chat")
 
 # Health check endpoint
 @app.get("/health", tags=["system"])
