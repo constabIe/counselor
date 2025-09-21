@@ -239,6 +239,24 @@ export default function App() {
     setXpNotification(prev => ({ ...prev, show: false }));
   }, []);
 
+  // Функция для обновления только бейджей
+  const updateBadges = React.useCallback(async () => {
+    if (!token) return;
+    
+    try {
+      const badges = await api.getMyBadges(token);
+      setUserData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          badges: badges
+        };
+      });
+    } catch (error) {
+      console.error('Error updating badges:', error);
+    }
+  }, [token]);
+
   // Функция для загрузки данных пользователя с бейджами
   const loadUserDataWithBadges = React.useCallback(async (token) => {
     try {
@@ -375,12 +393,12 @@ export default function App() {
     // Показываем уведомление о начислении XP
     showXPNotification(40, 'Вы успешно загрузили CV!');
     
-    // Загружаем обновленную информацию о пользователе с небольшой задержкой
+    // Обновляем бейджи с небольшой задержкой
     if (token) {
       setTimeout(() => {
-        loadUserDataWithBadges(token)
+        updateBadges()
           .catch(console.error);
-      }, 500); // Даем время показать локальное обновление XP
+      }, 500); // Даем время серверу обработать выдачу бейджей
     }
   };
 
@@ -445,6 +463,7 @@ export default function App() {
           onReupload={handleShowCvManager}
           onOpenTasks={() => setShowTaskModal(true)}
           showXPNotification={showXPNotification}
+          updateBadges={updateBadges}
         />
       )}
 
@@ -1133,7 +1152,7 @@ function EmployeeOnboarding({
 }
 
 
-function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNotification }) {
+function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNotification, updateBadges }) {
   // Функция для перевода уровней
   const getJobLevelLabel = (level) => {
     const levelLabels = {
@@ -1329,6 +1348,13 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
       // Показываем уведомление о начислении XP
       showXPNotificationWithLocalUpdate(10, 'Вы обновили информацию в CV!');
       
+      // Обновляем бейджи с небольшой задержкой
+      if (updateBadges) {
+        setTimeout(() => {
+          updateBadges().catch(console.error);
+        }, 500);
+      }
+      
       // Обновляем локальное состояние
       setCurrentCv(prev => ({
         ...prev,
@@ -1482,6 +1508,13 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
       // Показываем уведомление о начислении XP
       showXPNotificationWithLocalUpdate(20, 'Вы записались на курс!');
       
+      // Обновляем бейджи с небольшой задержкой
+      if (updateBadges) {
+        setTimeout(() => {
+          updateBadges().catch(console.error);
+        }, 500);
+      }
+      
       setEnrollmentMessage('Вы успешно записались на курс!');
       setTimeout(() => {
         setSelectedCourse(null);
@@ -1504,6 +1537,13 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
   // Функция для отклика на вакансию
   const handleJobApply = (jobTitle) => {
     showXPNotificationWithLocalUpdate(10, `Вы откликнулись на вакансию "${jobTitle}"!`);
+    
+    // Обновляем бейджи с небольшой задержкой
+    if (updateBadges) {
+      setTimeout(() => {
+        updateBadges().catch(console.error);
+      }, 500);
+    }
   };
 
   // Состояния для модального окна покупки
@@ -2425,7 +2465,7 @@ function HrDashboard({ onLogout }) {
   };
 
   // Функции для создания папки
-  const openCreateFolderModal = () => {
+  const openCreateFolderModal = async () => {
     setShowCreateFolderModal(true);
     setCreateFolderError(null);
     setNewFolder({
@@ -2433,6 +2473,9 @@ function HrDashboard({ onLogout }) {
       description: '',
       job_id: ''
     });
+    
+    // Обновляем список вакансий при открытии модального окна
+    await loadJobs();
   };
 
   const closeCreateFolderModal = () => {
@@ -2815,7 +2858,7 @@ function HrDashboard({ onLogout }) {
         </section>
       )}
 
-      {activeTab === 'vacancies' && <VacanciesTab />}
+      {activeTab === 'vacancies' && <VacanciesTab onJobCreated={loadJobs} />}
 
       {activeTab === 'folders' && (
         <section className="panel">
@@ -2896,7 +2939,7 @@ function HrDashboard({ onLogout }) {
   )
 }
 
-function VacanciesTab() {
+function VacanciesTab({ onJobCreated }) {
   const [vacancies, setVacancies] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
@@ -3013,8 +3056,13 @@ function VacanciesTab() {
 
       setCreateSuccess('Вакансия успешно создана!');
       
-      // Перезагружаем список вакансий
+      // Перезагружаем список вакансий в текущей вкладке
       await loadJobs();
+      
+      // Уведомляем родительский компонент об создании новой вакансии
+      if (onJobCreated) {
+        onJobCreated();
+      }
       
       // Убираем сообщение об успехе через 3 секунды
       setTimeout(() => setCreateSuccess(''), 3000);
