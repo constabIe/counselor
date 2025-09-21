@@ -4,7 +4,7 @@ services:
       context: ..
       dockerfile: backend/Dockerfile
     container_name: backend
-    restart: always
+    # restart: always
     env_file:
       - .env
     depends_on:
