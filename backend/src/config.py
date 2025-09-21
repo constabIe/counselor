@@ -8,7 +8,7 @@ from src.config_schema import Settings
 
 
 settings_path = os.getenv("SETTINGS_PATH", ".env")
-print(settings_path)
+print(settings_path, Path(settings_path).exists())
 settings: Settings = Settings.from_env(Path(settings_path)) if Path(settings_path).exists() else Settings() # type: ignore
 print(settings.db_url.get_secret_value())
 print(settings.jwt_secret_key.get_secret_value())
