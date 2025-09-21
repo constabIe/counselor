@@ -36,6 +36,8 @@ services:
     volumes:
       - ./static:/out
     command: sh -c "npm run build && cp -r dist/* /out"
+    depends_on:
+      - backend
 
   caddy:
     image: caddy:2-alpine
