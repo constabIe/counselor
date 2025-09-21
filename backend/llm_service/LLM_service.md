@@ -1,202 +1,187 @@
-# 📦 AIHR Resume Processing Package
+# LLM Service — Инструкция (RU)
 
-Этот пакет помогает backend-разработчикам работать с резюме кандидатов:  
-- 📄 Извлекать текст из PDF (сканы и текстовые файлы)  
-- 🧾 Структурировать его в JSON по фиксированной схеме  
-- 🏷 Генерировать теги (для HR или поиска)  
-- 🔢 Векторизовать теги для семантического поиска  
+Этот документ описывает, как пользоваться модулем `llm_service` для обработки резюме: извлечение текста, структуризация, генерация тегов и векторизация.
 
 ---
 
-## 🚀 Установка и подготовка
+## 🚀 Установка
 
-1. **Создать виртуальное окружение**
 ```bash
+# Клонируем репозиторий
+git clone https://github.com/constabIe/hrcounselor.git
+cd hrcounselor/backend
+
+# Создаём и активируем виртуальное окружение
 python -m venv .venv
 source .venv/bin/activate   # Linux/macOS
-.venv\Scripts\activate      # Windows
-```
+.venv\Scripts\activate    # Windows PowerShell
 
-2. **Установить зависимости**
-```bash
+# Устанавливаем зависимости
 pip install -r requirements.txt
 ```
 
-3. **Создать `.env` в корне проекта**
-```env
-SCIBOX_API_KEY=<API_KEY>              # ключ доступа к SciBox
-SCIBOX_BASE_URL=https://llm.t1v.scibox.tech/v1
-SCIBOX_MODEL=Qwen2.5-72B-Instruct-AWQ # модель чата
-SCIBOX_EMBED_MODEL=bge-m3             # модель эмбеддингов
-```
+---
 
-4. **Запустить сервис Nougat (опционально, для сканов PDF)**
-```bash
-python -m uvicorn server:app --host 0.0.0.0 --port 8080
+## ⚙️ Настройка окружения
+
+Создайте файл `.env` в папке `backend/llm_service`:
+
+```env
+SCIBOX_API_KEY=ваш_api_ключ
+SCIBOX_BASE_URL=https://llm.t1v.scibox.tech/v1
+SCIBOX_MODEL=Qwen2.5-72B-Instruct-AWQ
+SCIBOX_EMBED_MODEL=bge-m3
 ```
 
 ---
 
-## 📄 1. Извлечение текста из PDF
+## 📄 Извлечение текста из PDF
 
 ```python
-import pathlib
+from pathlib import Path
 from aihr.ingest.extractors import extract_auto
 
-pdf = pathlib.Path("cv.pdf").read_bytes()
-extracted = extract_auto(
-    pdf,
-    nougat_base="http://localhost:8080",   # если нужен OCR
-    nougat_token="supersecret-long-random",
-    nougat_profile="accurate",
-)
+pdf_bytes = Path("cv.pdf").read_bytes()
+result = extract_auto(pdf_bytes)
+print(result.text)  # исходный текст
+```
 
-print("Engine:", extracted.engine)  # pymupdf / nougat
-print("Text snippet:", extracted.text[:300])
+Результат сохраняется в JSON с полями:
+```json
+{
+  "engine": "pymupdf",
+  "meta": {"pages": 2},
+  "text": "...."
+}
 ```
 
 ---
 
-## 🧾 2. Структуризация в JSON-резюме
+## 🏗 Структуризация резюме
 
 ```python
-from aihr.llm.scibox_client import SciBoxConfig
-from aihr.llm.tasks import task_structure_resume
-import json
+from aihr.struct.pipeline import structure_from_extract_json
 
-cfg = SciBoxConfig()
-structured = task_structure_resume(extracted.text, cfg=cfg)
-
-print(json.dumps(structured.payload, ensure_ascii=False, indent=2))
+structured = structure_from_extract_json(result)
+print(structured)
 ```
 
-### 📋 Схема JSON-резюме
-
+Пример JSON:
 ```json
 {
-  "name": "string",
-  "surname": "string",
-  "gender": "Male|Female|''",
-  "age": "int|null",
-  "date_of_birth": "string",
-  "summary": "string",
-  "contacts": {
-    "emails": ["string"],
-    "phones": ["string"],
-    "urls": ["string"]
-  },
-  "education": [],
-  "experience": [],
-  "skills": {"hard": [], "soft": []},
-  "languages": [],
+  "name": "Ivan",
+  "surname": "Petrov",
+  "gender": "Male",
+  "age": 28,
+  "date_of_birth": "1997-01-05",
+  "summary": "Опытный backend разработчик с фокусом на Python и Go.",
+  "contacts": {"emails": ["ivan@mail.com"], "phones": ["+79998887766"], "urls": []},
+  "education": [...],
+  "experience": [...],
+  "skills": {"hard": ["Python","FastAPI"], "soft": ["Time Management"]},
+  "languages": [...],
   "projects": [],
   "awards": [],
   "hobbies": [],
-  "request": {"type": "resume", "format": "json", "model": "string"}
+  "request": {"type":"resume","format":"json","model":"Qwen2.5-72B-Instruct-AWQ"}
 }
 ```
 
 ---
 
-## 🏷 3. Генерация тегов
+## 🏷 Генерация тегов
 
-### a) Теги из резюме
-
+### Из резюме
 ```python
 from aihr.struct.tags import generate_tags
 
-tags = generate_tags(structured.payload, k=15, cfg=cfg, prefer_llm=True)
+tags = generate_tags(structured)
 print(tags)
 ```
 
-Пример результата:
-
-```json
-{
-  "tags": ["PYTHON", "FASTAPI", "POSTGRESQL", "BACKEND", "18-25"],
-  "request": {"type": "tags", "format": "json", "model": "Qwen2.5-72B-Instruct-AWQ"}
-}
-```
-
-### b) Теги по HR-запросу
-
+### Из HR-запроса
 ```python
 from aihr.struct.tags import generate_hr_query_tags_llm
 
 prefs = {
-  "query": "Нужен бэкенд, ownership, английский C1+",
+  "query": "Нужен backend разработчик с Python и английским C1+",
   "filters": {
     "department": "Engineering",
     "experience_years_min": 2,
     "experience_years_max": 5,
-    "skills": ["Python","FastAPI","PostgreSQL","Docker"],
+    "skills": ["Python","FastAPI","PostgreSQL"],
     "level": "Middle",
-    "languages": ["English C1"],
+    "languages": ["English C1","Russian native"],
     "education_level": "Bachelor+",
     "age_min": 26,
     "age_max": 35
   }
 }
 
-tags = generate_hr_query_tags_llm(prefs, k=20, cfg=cfg)
+tags = generate_hr_query_tags_llm(prefs)
 print(tags)
 ```
 
+Все теги возвращаются в ВЕРХНЕМ РЕГИСТРЕ и включают возрастную категорию.
+
 ---
 
-## 🔢 4. Векторизация тегов
+## 🔢 Векторизация тегов
 
 ```python
-from aihr.struct.embeddings import embed_tags
+from aihr.struct.embed import embed_tags
+tags = ["PYTHON","FASTAPI","26-30"]
 
-tags = ["PYTHON", "FASTAPI", "POSTGRESQL", "18-25"]
-vecs = embed_tags(tags, cfg=cfg)
-
-print("Vectors:", len(vecs))
-print(vecs[0][:8])  # первые 8 чисел первого вектора
+vectors = embed_tags({"tags": tags})
+print(len(vectors), "vectors")
 ```
 
 ---
 
-## 🔗 5. Полный пайплайн "PDF → JSON резюме → Теги → Вектора"
+## 🧪 Тесты
 
-```python
-import pathlib, json
-from aihr.ingest.extractors import extract_auto
-from aihr.llm.tasks import task_structure_resume
-from aihr.llm.scibox_client import SciBoxConfig
-from aihr.struct.tags import generate_tags
-from aihr.struct.embeddings import embed_tags
-
-cfg = SciBoxConfig()
-pdf = pathlib.Path("cv.pdf").read_bytes()
-
-extracted = extract_auto(pdf)
-structured = task_structure_resume(extracted.text, cfg=cfg)
-tags = generate_tags(structured.payload, k=15, cfg=cfg, prefer_llm=True)
-vecs = embed_tags(tags["tags"], cfg=cfg)
-
-result = {"resume": structured.payload, "tags": tags, "vectors": vecs}
-print(json.dumps(result, ensure_ascii=False, indent=2))
-```
-
----
-
-## 🛠 Отладка и тестирование
-
+Запуск всех тестов:
 ```bash
-pytest -v
-python llm_service/tests/test_tags_smoke.py
+pytest backend/llm_service/tests -v
+```
+
+Пример теста извлечения:
+```bash
+python backend/llm_service/tests/test_extract_smoke.py
+```
+
+Пример теста тегов:
+```bash
+python backend/llm_service/tests/test_tags_smoke.py
+```
+
+Все тесты выводят результат в консоль в JSON.
+
+---
+
+## 🌐 Работа с GitHub
+
+Создать ветку:
+```bash
+git checkout -b feature/llm-service
+```
+
+Закоммитить:
+```bash
+git add .
+git commit -m "LLM сервис: структуризация резюме, теги, эмбеддинги"
+git push origin feature/llm-service
 ```
 
 ---
 
 ## 📌 Итог
 
-Этот пакет позволяет:  
-✅ Автоматически обрабатывать резюме из PDF  
-✅ Приводить данные в **единый JSON-формат**  
-✅ Генерировать HR-теги и возрастные диапазоны  
-✅ Строить эмбеддинги для поиска и подбора  
+Модуль поддерживает:
+- Извлечение текста из PDF
+- Структуризацию резюме
+- Генерацию тегов (резюме и HR-запрос)
+- Векторизацию тегов
+- Удобные тесты
+- Настройки через `.env`
 
-Используется единый конфиг `SciBoxConfig`, который берёт параметры из `.env`.
