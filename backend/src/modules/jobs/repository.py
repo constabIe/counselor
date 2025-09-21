@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlmodel import select, func, col
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.storages.sql.models import Job, JobLevel, JobStatus, EmploymentType
+from src.storages.sql.models import Job, JobLevel, JobStatus, EmploymentType, Folder, FolderCandidate
 
 logger = logging.getLogger(__name__)
 
@@ -169,10 +169,30 @@ async def delete_job(
     if not job:
         return False
     
+    # Сначала удаляем все связанные папки (включая неактивные)
+    # Получаем все папки для данной вакансии (включая неактивные)
+    folders_stmt = select(Folder).where(Folder.job_id == job_id)
+    folders_result = await session.execute(folders_stmt)
+    folders = list(folders_result.scalars().all())
+    
+    # Удаляем кандидатов из всех папок
+    for folder in folders:
+        candidates_stmt = select(FolderCandidate).where(FolderCandidate.folder_id == folder.id)
+        candidates_result = await session.execute(candidates_stmt)
+        candidates = list(candidates_result.scalars().all())
+        
+        for candidate in candidates:
+            await session.delete(candidate)
+    
+    # Удаляем все папки
+    for folder in folders:
+        await session.delete(folder)
+    
+    # Удаляем саму вакансию
     await session.delete(job)
     await session.commit()
     
-    logger.info(f"Удалена вакансия с ID: {job_id}")
+    logger.info(f"Удалена вакансия с ID: {job_id} и все связанные папки ({len(folders)} шт.)")
     
     return True
 

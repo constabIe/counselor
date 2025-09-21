@@ -22,6 +22,10 @@ email-validator==2.1.0
 
 # Настройки
 pyyaml==6.0.1
+python-dotenv==1.0.0
+
+# HTTP клиент для LLM API
+aiohttp==3.9.1
 
 # Разработка
 pytest==7.4.3

@@ -239,6 +239,24 @@ export default function App() {
     setXpNotification(prev => ({ ...prev, show: false }));
   }, []);
 
+  // Функция для обновления только бейджей
+  const updateBadges = React.useCallback(async () => {
+    if (!token) return;
+    
+    try {
+      const badges = await api.getMyBadges(token);
+      setUserData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          badges: badges
+        };
+      });
+    } catch (error) {
+      console.error('Error updating badges:', error);
+    }
+  }, [token]);
+
   // Функция для загрузки данных пользователя с бейджами
   const loadUserDataWithBadges = React.useCallback(async (token) => {
     try {
@@ -375,12 +393,12 @@ export default function App() {
     // Показываем уведомление о начислении XP
     showXPNotification(40, 'Вы успешно загрузили CV!');
     
-    // Загружаем обновленную информацию о пользователе с небольшой задержкой
+    // Обновляем бейджи с небольшой задержкой
     if (token) {
       setTimeout(() => {
-        loadUserDataWithBadges(token)
+        updateBadges()
           .catch(console.error);
-      }, 500); // Даем время показать локальное обновление XP
+      }, 500); // Даем время серверу обработать выдачу бейджей
     }
   };
 
@@ -445,6 +463,7 @@ export default function App() {
           onReupload={handleShowCvManager}
           onOpenTasks={() => setShowTaskModal(true)}
           showXPNotification={showXPNotification}
+          updateBadges={updateBadges}
         />
       )}
 
@@ -565,6 +584,20 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
     try {
       setIsLoading(true);
       setError(null);
+      setRegisterError('');
+
+      // Проверяем формат email
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(registerEmail)) {
+        setRegisterError('Некорректный формат email адреса');
+        return;
+      }
+
+      // Проверяем длину пароля
+      if (registerPassword.length < 6) {
+        setRegisterError('Пароль должен содержать минимум 6 символов');
+        return;
+      }
       
       // Преобразуем роль в нужный формат
       const roleMap = {
@@ -607,35 +640,45 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
     try {
       setIsLoading(true);
       setLoginError('');
+
+      // Проверяем формат email
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(loginEmail)) {
+        setLoginError('Некорректный формат email адреса');
+        return;
+      }
+
       const data = {
         email: loginEmail,
         password: loginPassword,
       };
 
-      const response = await api.login(data);
-      localStorage.setItem('token', response.access_token);
-      if (typeof onSetToken === 'function') onSetToken(response.access_token);
-
-      // fetch profile to determine role
       try {
-        const profile = await api.getUserProfile(response.access_token);
-        onLogin(profile.role.toLowerCase());
-      } catch (e) {
-        // if profile fetch failed, still call onLogin with chosen role
-        onLogin(loginRole);
+        const response = await api.login(data);
+        localStorage.setItem('token', response.access_token);
+        if (typeof onSetToken === 'function') onSetToken(response.access_token);
+
+        // fetch profile to determine role
+        try {
+          const profile = await api.getUserProfile(response.access_token);
+          onLogin(profile.role.toLowerCase());
+        } catch (e) {
+          // if profile fetch failed, still call onLogin with chosen role
+          onLogin(loginRole);
+        }
+      } catch (error) {
+        if (error.status === 404 || error.message?.includes('not found') || error.message?.includes('does not exist')) {
+          setLoginError('Такого пользователя не существует');
+          return;
+        }
+        if (error.status === 401) {
+          setLoginError('Неверный пароль');
+          return;
+        }
+        setLoginError('Ошибка при входе. Пожалуйста, проверьте введенные данные.');
       }
     } catch (error) {
-      // if backend returns 404 or specific 'user not found' message, switch to register
-      if (error && (error.status === 404 || /not found|does not exist|no user/i.test(error.message))) {
-        setLoginError('Пользователь не найден. Пожалуйста, зарегистрируйтесь.');
-        setRegisterEmail(loginEmail);
-        setRegisterRole(loginRole);
-        setMode('register');
-      } else if (error && error.status === 401) {
-        setLoginError('Неверный пароль.');
-      } else {
-        setLoginError(error.message || 'Ошибка при входе');
-      }
+      setLoginError('Произошла ошибка. Пожалуйста, попробуйте позже.');
     } finally {
       setIsLoading(false);
     }
@@ -710,10 +753,6 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
               <label className="auth__field">
                 <span>Пароль</span>
                 <input type="password" value={registerPassword} onChange={(event) => setRegisterPassword(event.target.value)} placeholder="Придумайте пароль" />
-              </label>
-              <label className="auth__field">
-                <span>Повтор пароля</span>
-                <input type="password" value={registerConfirm} onChange={(event) => setRegisterConfirm(event.target.value)} placeholder="Повторите пароль" />
               </label>
             </div>
 
@@ -1113,7 +1152,7 @@ function EmployeeOnboarding({
 }
 
 
-function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNotification }) {
+function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNotification, updateBadges }) {
   // Функция для перевода уровней
   const getJobLevelLabel = (level) => {
     const levelLabels = {
@@ -1171,6 +1210,12 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
   const [assistantInput, setAssistantInput] = React.useState('')
   const [completedTasks, setCompletedTasks] = React.useState([])
   
+  // Состояния для WebSocket чата
+  const [chatConnected, setChatConnected] = React.useState(false)
+  const [chatError, setChatError] = React.useState('')
+  const [isTyping, setIsTyping] = React.useState(false)
+  const [currentAIMessage, setCurrentAIMessage] = React.useState('')
+  
   // Состояния для вакансий
   const [jobs, setJobs] = React.useState([])
   const [isLoadingJobs, setIsLoadingJobs] = React.useState(false)
@@ -1185,6 +1230,70 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
       loadJobs();
     }
   }, [token]);
+
+  // Подключение к WebSocket чату
+  React.useEffect(() => {
+    if (token && userProfile?.id) {
+      connectToChat();
+    }
+    
+    // Отключение при размонтировании
+    return () => {
+      api.chat.disconnect();
+    };
+  }, [token, userProfile?.id]);
+
+  const connectToChat = () => {
+    if (!userProfile?.id || !token) return;
+
+    api.chat.connect(userProfile.id, token, {
+      onConnect: () => {
+        console.log('Подключено к чату');
+        setChatConnected(true);
+        setChatError('');
+      },
+      
+      onMessage: (data) => {
+        switch (data.type) {
+          case 'user_message':
+            // Подтверждение получения сообщения пользователя
+            break;
+            
+          case 'ai_chunk':
+            // Добавляем чанк к текущему ответу AI
+            setCurrentAIMessage(prev => prev + data.chunk);
+            break;
+            
+          case 'ai_complete':
+            // AI закончил отвечать
+            setAssistantMessages(prev => [...prev, { from: 'bot', text: data.full_message }]);
+            setCurrentAIMessage('');
+            setIsTyping(false);
+            break;
+            
+          case 'error':
+            // Обработка ошибки
+            setChatError(data.message);
+            setIsTyping(false);
+            setCurrentAIMessage('');
+            break;
+        }
+      },
+      
+      onError: (error) => {
+        console.error('Chat error:', error);
+        setChatConnected(false);
+        setChatError(error);
+        setIsTyping(false);
+      },
+      
+      onDisconnect: () => {
+        console.log('Отключено от чата');
+        setChatConnected(false);
+        setIsTyping(false);
+      }
+    });
+  };
 
   const loadCvInfo = async () => {
     try {
@@ -1238,6 +1347,13 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
       
       // Показываем уведомление о начислении XP
       showXPNotificationWithLocalUpdate(10, 'Вы обновили информацию в CV!');
+      
+      // Обновляем бейджи с небольшой задержкой
+      if (updateBadges) {
+        setTimeout(() => {
+          updateBadges().catch(console.error);
+        }, 500);
+      }
       
       // Обновляем локальное состояние
       setCurrentCv(prev => ({
@@ -1392,6 +1508,13 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
       // Показываем уведомление о начислении XP
       showXPNotificationWithLocalUpdate(20, 'Вы записались на курс!');
       
+      // Обновляем бейджи с небольшой задержкой
+      if (updateBadges) {
+        setTimeout(() => {
+          updateBadges().catch(console.error);
+        }, 500);
+      }
+      
       setEnrollmentMessage('Вы успешно записались на курс!');
       setTimeout(() => {
         setSelectedCourse(null);
@@ -1414,12 +1537,33 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
   // Функция для отклика на вакансию
   const handleJobApply = (jobTitle) => {
     showXPNotificationWithLocalUpdate(10, `Вы откликнулись на вакансию "${jobTitle}"!`);
+    
+    // Обновляем бейджи с небольшой задержкой
+    if (updateBadges) {
+      setTimeout(() => {
+        updateBadges().catch(console.error);
+      }, 500);
+    }
   };
 
+  // Состояния для модального окна покупки
+  const [purchaseModalOpen, setPurchaseModalOpen] = React.useState(false);
+  const [purchaseDetails, setPurchaseDetails] = React.useState(null);
+
   // Функция для покупки товара в магазине
-  const handleStorePurchase = (itemName, price) => {
-    // Здесь может быть логика проверки достаточности XP и реальная покупка
-    alert(`Вы успешно заказали "${itemName}" за ${price}!`);
+  const handleStorePurchase = (itemName, priceStr) => {
+    // Извлекаем числовое значение из строки цены (например, "500 XP" -> 500)
+    const price = parseInt(priceStr);
+    if (isNaN(price)) return;
+
+    setPurchaseDetails({ itemName, price });
+    setPurchaseModalOpen(true);
+  };
+
+  // Проверка достаточности XP
+  const hasEnoughXP = (requiredXP) => {
+    const currentXP = userProfile?.xp || 0;
+    return currentXP >= parseInt(requiredXP);
   };
 
   const [form, setForm] = React.useState({
@@ -1450,12 +1594,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
     testResults: 'Отсутствуют',
   })
 
-  const roadmap = [
-    '3 мес: закрепить основы и закрыть пробелы',
-    '6 мес: взять pet‑проект/внутреннюю задачу',
-    '12 мес: мидл‑уровень по целевой роли',
-  ]
-
   const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
   // Функции для личного помощника
@@ -1463,21 +1601,34 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
     const text = assistantInput.trim()
     if (!text) return
     
+    // Добавляем сообщение пользователя в чат
     setAssistantMessages(prev => [...prev, { from: 'user', text }])
     setAssistantInput('')
     
-    // Имитация ответа бота (заглушка)
-    setTimeout(() => {
-      const botResponses = [
-        'Интересный вопрос! Давайте разберем это подробнее.',
-        'Я анализирую ваш запрос. Вот что я могу предложить...',
-        'Основываясь на вашем профиле, рекомендую следующее:',
-        'Хороший вопрос! Это поможет в вашем карьерном развитии.',
-        'Давайте составим план действий по вашему запросу.'
-      ]
-      const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)]
-      setAssistantMessages(prev => [...prev, { from: 'bot', text: randomResponse }])
-    }, 1000)
+    // Отправляем сообщение через WebSocket
+    if (api.chat.isConnected()) {
+      setIsTyping(true);
+      setCurrentAIMessage('');
+      setChatError('');
+      
+      const success = api.chat.sendMessage(text);
+      if (!success) {
+        setChatError('Не удалось отправить сообщение');
+        setIsTyping(false);
+      }
+    } else {
+      setChatError('Нет подключения к чату. Попробуйте перезагрузить страницу.');
+      
+      // Fallback: имитация ответа бота (заглушка) для случая отсутствия подключения
+      setTimeout(() => {
+        const botResponses = [
+          'Извините, сейчас у меня проблемы с подключением. Попробуйте позже.',
+          'Не могу подключиться к серверу. Проверьте интернет-соединение.',
+        ]
+        const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)]
+        setAssistantMessages(prev => [...prev, { from: 'bot', text: randomResponse }])
+      }, 1000)
+    }
   }
 
   const toggleTaskCompletion = (taskId) => {
@@ -1597,7 +1748,34 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
             </div>
             
             <div className="assistant-chat">
-              <h3>Чат с помощником</h3>
+              <div className="chat-header">
+                <h3>Чат с помощником</h3>
+                <div className="chat-status">
+                  {chatConnected ? (
+                    <span className="status-indicator status-indicator--connected">
+                      🟢 Подключено
+                    </span>
+                  ) : (
+                    <span className="status-indicator status-indicator--disconnected">
+                      🔴 Не подключено
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {chatError && (
+                <div className="chat-error">
+                  ⚠️ {chatError}
+                  <button 
+                    className="retry-button" 
+                    onClick={connectToChat}
+                    type="button"
+                  >
+                    Переподключиться
+                  </button>
+                </div>
+              )}
+              
               <div className="chat">
                 <div className="chat__messages">
                   {assistantMessages.map((message, index) => (
@@ -1605,18 +1783,43 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
                       {message.text}
                     </div>
                   ))}
+                  
+                  {/* Показываем текущий ответ AI в реальном времени */}
+                  {currentAIMessage && (
+                    <div className="msg msg--bot msg--streaming">
+                      {currentAIMessage}
+                      <span className="typing-cursor">|</span>
+                    </div>
+                  )}
+                  
+                  {/* Индикатор печати */}
+                  {isTyping && !currentAIMessage && (
+                    <div className="msg msg--bot msg--typing">
+                      <div className="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="chat__input">
                   <input 
                     className="field__input field__input--chat" 
                     type="text" 
-                    placeholder="Задайте вопрос помощнику" 
+                    placeholder={chatConnected ? "Задайте вопрос помощнику" : "Подключение к чату..."} 
                     value={assistantInput} 
                     onChange={(e) => setAssistantInput(e.target.value)} 
                     onKeyDown={(e) => e.key === 'Enter' && sendAssistantMessage()}
+                    disabled={!chatConnected || isTyping}
                   />
-                  <button className="btn btn-green" type="button" onClick={sendAssistantMessage}>
-                    Отправить
+                  <button 
+                    className="btn btn-green" 
+                    type="button" 
+                    onClick={sendAssistantMessage}
+                    disabled={!chatConnected || isTyping || !assistantInput.trim()}
+                  >
+                    {isTyping ? 'Отправляю...' : 'Отправить'}
                   </button>
                 </div>
               </div>
@@ -1669,7 +1872,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
           ) : !currentCv ? (
             <div className="empty-state">
               <p>Нет загруженного CV. Загрузите резюме для просмотра данных.</p>
-              <button className="btn btn-green" onClick={onReupload}>Загрузить CV</button>
             </div>
           ) : (
             <>
@@ -1926,12 +2128,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               })}
             </div>
           )}
-          <h3>Роадмап</h3>
-          <ul className="list">
-            {roadmap.map((r, i) => (
-              <li key={i} className="list__item">{r}</li>
-            ))}
-          </ul>
         </section>
       )}
 
@@ -2034,8 +2230,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Носки с логотипом', '500 XP')}
+                disabled={!hasEnoughXP(500)}
               >
-                Заказать
+                {hasEnoughXP(500) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2046,8 +2243,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Футболка компании', '1200 XP')}
+              disabled={!hasEnoughXP(1200)}
               >
-                Заказать
+                {hasEnoughXP(1200) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2058,8 +2256,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Кружка с логотипом', '800 XP')}
+              disabled={!hasEnoughXP(800)}
               >
-                Заказать
+                {hasEnoughXP(800) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2070,8 +2269,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Оплата питания', 'от 1000 XP')}
+              disabled={!hasEnoughXP(1000)}
               >
-                Пополнить
+                {hasEnoughXP(1000) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2082,8 +2282,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Сертификат Wildberries', '3000 XP')}
+              disabled={!hasEnoughXP(3000)}
               >
-                Заказать
+                {hasEnoughXP(3000) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2094,8 +2295,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Сертификат Ozon', '2500 XP')}
+              disabled={!hasEnoughXP(2500)}
               >
-                Заказать
+                {hasEnoughXP(2500) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2106,8 +2308,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Сертификат Пятёрочка', '2000 XP')}
+              disabled={!hasEnoughXP(2000)}
               >
-                Заказать
+                {hasEnoughXP(2000) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2118,12 +2321,40 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Сертификат развлечений', '1500 XP')}
+              disabled={!hasEnoughXP(1500)}
               >
-                Заказать
+                {hasEnoughXP(1500) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
           </div>
         </section>
+      )}
+
+      {/* Модальное окно подтверждения покупки */}
+      {purchaseModalOpen && (
+        <div className="modal-overlay" onClick={() => setPurchaseModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="icon-button icon-button--ghost modal-close" 
+              onClick={() => setPurchaseModalOpen(false)}
+            >
+              <CloseIcon className="icon icon--small" />
+            </button>
+            <div className="modal-body">
+              <h3>Покупка совершена!</h3>
+              <p>Вы успешно приобрели товар "{purchaseDetails?.itemName}"</p>
+              <p>Списано {purchaseDetails?.price} XP</p>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-green" 
+                onClick={() => setPurchaseModalOpen(false)}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -2222,7 +2453,7 @@ function HrDashboard({ onLogout }) {
   };
 
   // Функции для создания папки
-  const openCreateFolderModal = () => {
+  const openCreateFolderModal = async () => {
     setShowCreateFolderModal(true);
     setCreateFolderError(null);
     setNewFolder({
@@ -2230,6 +2461,9 @@ function HrDashboard({ onLogout }) {
       description: '',
       job_id: ''
     });
+    
+    // Обновляем список вакансий при открытии модального окна
+    await loadJobs();
   };
 
   const closeCreateFolderModal = () => {
@@ -2612,7 +2846,7 @@ function HrDashboard({ onLogout }) {
         </section>
       )}
 
-      {activeTab === 'vacancies' && <VacanciesTab />}
+      {activeTab === 'vacancies' && <VacanciesTab onJobCreated={loadJobs} />}
 
       {activeTab === 'folders' && (
         <section className="panel">
@@ -2634,8 +2868,6 @@ function HrDashboard({ onLogout }) {
                 display: 'grid', 
                 gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
                 gap: '1.5rem',
-                maxWidth: '900px',
-                margin: '0 auto'
               }}
             >
               {folders.map((folder) => (
@@ -2695,7 +2927,7 @@ function HrDashboard({ onLogout }) {
   )
 }
 
-function VacanciesTab() {
+function VacanciesTab({ onJobCreated }) {
   const [vacancies, setVacancies] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
@@ -2812,8 +3044,13 @@ function VacanciesTab() {
 
       setCreateSuccess('Вакансия успешно создана!');
       
-      // Перезагружаем список вакансий
+      // Перезагружаем список вакансий в текущей вкладке
       await loadJobs();
+      
+      // Уведомляем родительский компонент об создании новой вакансии
+      if (onJobCreated) {
+        onJobCreated();
+      }
       
       // Убираем сообщение об успехе через 3 секунды
       setTimeout(() => setCreateSuccess(''), 3000);

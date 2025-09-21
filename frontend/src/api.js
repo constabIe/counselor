@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
+const WS_URL = import.meta.env.WS_URL;
 
 async function parseError(response) {
   let body = null;
@@ -12,6 +13,106 @@ async function parseError(response) {
   err.status = response.status;
   throw err;
 }
+
+// WebSocket Chat Manager
+class ChatManager {
+  constructor() {
+    this.socket = null;
+    this.userId = null;
+    this.token = null;
+    this.onMessage = null;
+    this.onError = null;
+    this.onConnect = null;
+    this.onDisconnect = null;
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5;
+    this.reconnectInterval = 3000;
+  }
+
+  connect(userId, token, callbacks = {}) {
+    this.userId = userId;
+    this.token = token;
+    this.onMessage = callbacks.onMessage || (() => {});
+    this.onError = callbacks.onError || (() => {});
+    this.onConnect = callbacks.onConnect || (() => {});
+    this.onDisconnect = callbacks.onDisconnect || (() => {});
+
+    this._connect();
+  }
+
+  _connect() {
+    try {
+      // Добавляем токен как query параметр
+      const wsUrl = `${WS_URL}/chat/ws/chat/${this.userId}?token=${encodeURIComponent(this.token)}`;
+      this.socket = new WebSocket(wsUrl);
+      
+      this.socket.onopen = () => {
+        console.log('WebSocket connected');
+        this.reconnectAttempts = 0;
+        this.onConnect();
+      };
+
+      this.socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          this.onMessage(data);
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+          this.onError('Ошибка обработки сообщения');
+        }
+      };
+
+      this.socket.onclose = (event) => {
+        console.log('WebSocket disconnected:', event.code, event.reason);
+        this.onDisconnect();
+        
+        // Автоматическое переподключение
+        if (this.reconnectAttempts < this.maxReconnectAttempts && event.code !== 1000) {
+          this.reconnectAttempts++;
+          console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+          setTimeout(() => this._connect(), this.reconnectInterval);
+        }
+      };
+
+      this.socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        this.onError('Ошибка подключения к чату');
+      };
+
+    } catch (error) {
+      console.error('Error creating WebSocket:', error);
+      this.onError('Не удалось подключиться к чату');
+    }
+  }
+
+  sendMessage(message) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      const data = {
+        message: message,
+        timestamp: new Date().toISOString()
+      };
+      this.socket.send(JSON.stringify(data));
+      return true;
+    } else {
+      this.onError('Соединение с чатом потеряно');
+      return false;
+    }
+  }
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.close(1000, 'User disconnected');
+      this.socket = null;
+    }
+  }
+
+  isConnected() {
+    return this.socket && this.socket.readyState === WebSocket.OPEN;
+  }
+}
+
+// Создаем единственный экземпляр менеджера чата
+const chatManager = new ChatManager();
 
 export const api = {
   async register(data) {
@@ -302,5 +403,24 @@ export const api = {
       : [];
     
     return badges;
+  },
+
+  // Chat methods
+  chat: {
+    connect(userId, token, callbacks) {
+      return chatManager.connect(userId, token, callbacks);
+    },
+
+    sendMessage(message) {
+      return chatManager.sendMessage(message);
+    },
+
+    disconnect() {
+      return chatManager.disconnect();
+    },
+
+    isConnected() {
+      return chatManager.isConnected();
+    }
   }
 };
