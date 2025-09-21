@@ -33,6 +33,8 @@ services:
       context: ..
       dockerfile: frontend/Dockerfile
     container_name: frontend
+    volumes:
+      - ./frontend/dist:/app/dist
 
   caddy:
     image: caddy:2-alpine
@@ -45,6 +47,7 @@ services:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
       - ./caddy/caddy_data:/data
       - ./caddy/caddy_config:/config
+      - ./frontend/dist:/usr/share/caddy
     depends_on:
       - backend
       - frontend

@@ -1,5 +1,5 @@
 **
 
-!frontend
+!frontend/**
 !deploy/.env
 !deploy/caddy
