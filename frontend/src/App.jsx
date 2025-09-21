@@ -1703,7 +1703,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
           ) : !currentCv ? (
             <div className="empty-state">
               <p>Нет загруженного CV. Загрузите резюме для просмотра данных.</p>
-              <button className="btn btn-green" onClick={onReupload}>Загрузить CV</button>
             </div>
           ) : (
             <>
