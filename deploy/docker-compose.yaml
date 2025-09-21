@@ -51,3 +51,6 @@ services:
       - ./static:/usr/share/caddy
     depends_on:
       - backend
+      
+volumes:
+  postgres_data:
