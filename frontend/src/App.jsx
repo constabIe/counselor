@@ -1594,12 +1594,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
     testResults: 'Отсутствуют',
   })
 
-  const roadmap = [
-    '3 мес: закрепить основы и закрыть пробелы',
-    '6 мес: взять pet‑проект/внутреннюю задачу',
-    '12 мес: мидл‑уровень по целевой роли',
-  ]
-
   const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
   // Функции для личного помощника
@@ -2134,12 +2128,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               })}
             </div>
           )}
-          <h3>Роадмап</h3>
-          <ul className="list">
-            {roadmap.map((r, i) => (
-              <li key={i} className="list__item">{r}</li>
-            ))}
-          </ul>
         </section>
       )}
 
