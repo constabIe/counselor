@@ -621,35 +621,45 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
     try {
       setIsLoading(true);
       setLoginError('');
+
+      // Проверяем формат email
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(loginEmail)) {
+        setLoginError('Некорректный формат email адреса');
+        return;
+      }
+
       const data = {
         email: loginEmail,
         password: loginPassword,
       };
 
-      const response = await api.login(data);
-      localStorage.setItem('token', response.access_token);
-      if (typeof onSetToken === 'function') onSetToken(response.access_token);
-
-      // fetch profile to determine role
       try {
-        const profile = await api.getUserProfile(response.access_token);
-        onLogin(profile.role.toLowerCase());
-      } catch (e) {
-        // if profile fetch failed, still call onLogin with chosen role
-        onLogin(loginRole);
+        const response = await api.login(data);
+        localStorage.setItem('token', response.access_token);
+        if (typeof onSetToken === 'function') onSetToken(response.access_token);
+
+        // fetch profile to determine role
+        try {
+          const profile = await api.getUserProfile(response.access_token);
+          onLogin(profile.role.toLowerCase());
+        } catch (e) {
+          // if profile fetch failed, still call onLogin with chosen role
+          onLogin(loginRole);
+        }
+      } catch (error) {
+        if (error.status === 404 || error.message?.includes('not found') || error.message?.includes('does not exist')) {
+          setLoginError('Такого пользователя не существует');
+          return;
+        }
+        if (error.status === 401) {
+          setLoginError('Неверный пароль');
+          return;
+        }
+        setLoginError('Ошибка при входе. Пожалуйста, проверьте введенные данные.');
       }
     } catch (error) {
-      // if backend returns 404 or specific 'user not found' message, switch to register
-      if (error && (error.status === 404 || /not found|does not exist|no user/i.test(error.message))) {
-        setLoginError('Пользователь не найден. Пожалуйста, зарегистрируйтесь.');
-        setRegisterEmail(loginEmail);
-        setRegisterRole(loginRole);
-        setMode('register');
-      } else if (error && error.status === 401) {
-        setLoginError('Неверный пароль.');
-      } else {
-        setLoginError(error.message || 'Ошибка при входе');
-      }
+      setLoginError('Произошла ошибка. Пожалуйста, попробуйте позже.');
     } finally {
       setIsLoading(false);
     }
@@ -1828,7 +1838,6 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
           ) : !currentCv ? (
             <div className="empty-state">
               <p>Нет загруженного CV. Загрузите резюме для просмотра данных.</p>
-              <button className="btn btn-green" onClick={onReupload}>Загрузить CV</button>
             </div>
           ) : (
             <>
@@ -2828,7 +2837,6 @@ function HrDashboard({ onLogout }) {
                 display: 'grid', 
                 gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
                 gap: '1.5rem',
-                maxWidth: '900px',
                 margin: '0 auto'
               }}
             >
