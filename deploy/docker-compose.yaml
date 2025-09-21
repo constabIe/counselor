@@ -1,0 +1,58 @@
+services:
+  backend:
+    build: 
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: backend
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    env_file: 
+      - .env
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  # сервис только для билда фронта
+  frontend-builder:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+    volumes:
+      - ./static:/out
+    command: sh -c "npm run build && cp -r dist/* /out"
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy/caddy_data:/data
+      - ./caddy/caddy_config:/config
+      - ./static:/usr/share/caddy
+    depends_on:
+      - backend
+      
+volumes:
+  postgres_data:

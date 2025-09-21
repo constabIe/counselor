@@ -1,19 +1,15 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
-
-# Загружаем переменные окружения из .env файла
-load_dotenv()
 
 from src.config_schema import Settings
 
-# settings_path = os.getenv("SETTINGS_PATH", "settings.yaml")
-# settings: Settings = Settings.from_yaml(Path(settings_path)) if Path(settings_path).exists() else Settings() # type: ignore
+BASE_DIR = Path(__file__).resolve().parent.parent
 
+settings_path = os.getenv("SETTINGS_PATH", BASE_DIR / ".env")
 
-settings_path = os.getenv("SETTINGS_PATH", ".env")
-settings: Settings = Settings.from_env(Path(settings_path)) if Path(settings_path).exists() else Settings() # type: ignore
-
+settings: Settings = (
+    Settings.from_env(settings_path) if Path(settings_path).exists() else Settings()  # type: ignore
+)
 
 def get_settings() -> Settings:
     """Получить настройки приложения"""
