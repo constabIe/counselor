@@ -30,7 +30,7 @@ services:
   
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
     container_name: frontend
     restart: always
 
