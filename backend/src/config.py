@@ -3,7 +3,7 @@ from pathlib import Path
 
 from src.config_schema import Settings
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 settings_path = os.getenv("SETTINGS_PATH", BASE_DIR / ".env")
 print(Path(settings_path))
