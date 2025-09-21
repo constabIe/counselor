@@ -31,8 +31,8 @@ services:
   # сервис только для билда фронта
   frontend-builder:
     build:
-      context: ../frontend
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: frontend/Dockerfile
     volumes:
       - ./static:/out
     command: sh -c "npm run build && cp -r dist/* /out"
