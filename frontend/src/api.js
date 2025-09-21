@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
-const WS_URL = import.meta.env.WS_URL;
+const WS_URL = import.meta.env.VITE_WS_URL;
 
 async function parseError(response) {
   let body = null;

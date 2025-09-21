@@ -2,3 +2,4 @@
 
 !frontend
 !deploy/.env
+!deploy/caddy
