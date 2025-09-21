@@ -1584,7 +1584,7 @@
 @media (max-width: 640px) {
   .btn,
   .btn-small {
-    width: 180px;
+    width: 100%;
     justify-content: center;
   }
 
