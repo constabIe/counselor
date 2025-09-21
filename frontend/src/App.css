@@ -1584,7 +1584,7 @@
 @media (max-width: 640px) {
   .btn,
   .btn-small {
-    width: 100%;
+    width: 180px;
     justify-content: center;
   }
 
@@ -2519,6 +2519,31 @@
 
 /* Mobile Responsive Styles */
 @media screen and (max-width: 450px) {
+  .empty-folders {
+    padding: 20px;
+    text-align: center;
+  }
+
+  .empty-folders p {
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0;
+    word-wrap: break-word;
+  }
+
+  .hr-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hr-dashboard__folder {
+    padding: 16px;
+  }
+
+  .hr-dashboard__folder-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
   .app {
     padding: 16px;
     border-radius: 16px;
@@ -2648,6 +2673,21 @@
 
 /* Extra small devices adjustments */
 @media screen and (max-width: 390px) {
+  .empty-folders {
+    padding: 16px;
+  }
+
+  .empty-folders p {
+    font-size: 13px;
+  }
+
+  .hr-dashboard__folder-name {
+    font-size: 14px;
+  }
+
+  .hr-dashboard__folder-meta {
+    font-size: 12px;
+  }
   .app {
     padding: 12px;
     border-radius: 12px;
