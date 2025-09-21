@@ -33,6 +33,7 @@ services:
       context: ..
       dockerfile: frontend/Dockerfile
     container_name: frontend
+    restart: always
     volumes:
       - ./frontend/dist:/app/dist
 
