@@ -567,6 +567,13 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
       setError(null);
       setRegisterError('');
 
+      // Проверяем формат email
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(registerEmail)) {
+        setRegisterError('Некорректный формат email адреса');
+        return;
+      }
+
       // Проверяем длину пароля
       if (registerPassword.length < 6) {
         setRegisterError('Пароль должен содержать минимум 6 символов');
