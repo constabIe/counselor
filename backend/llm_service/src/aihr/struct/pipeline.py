@@ -1,36 +1,18 @@
 from __future__ import annotations
-import json
 from typing import Any, Dict
-
 from aihr.llm.scibox_client import SciBoxConfig
 from aihr.llm.tasks import task_structure_resume, TaskResult
 from aihr.struct.sanitize import sanitize_resume
+from aihr.struct.tags import generate_tags
 
-def structure_from_extract_json(
-    extract_json: Dict[str, Any],
-    *,
-    cfg: SciBoxConfig | None = None,
-    schema: dict | None = None,
-) -> Dict[str, Any]:
-    if not isinstance(extract_json, dict):
-        raise TypeError("extract_json must be a dict")
-
-    raw_text = (extract_json.get("text") or "").strip()
-    if not raw_text:
-        raise ValueError("extract_json['text'] is empty")
-
-    res: TaskResult = task_structure_resume(raw_text, cfg=cfg, schema=schema)
+def structure_from_extract_json(extract: Dict[str, Any], *, cfg: SciBoxConfig | None = None) -> Dict[str, Any]:
+    raw_text: str = extract.get("text") or ""
+    res: TaskResult = task_structure_resume(raw_text, cfg=cfg)
     payload = res.payload if isinstance(res.payload, dict) else {}
+    clean = sanitize_resume(payload)
+    return clean
 
-    payload.setdefault("request", {})
-    payload["request"].setdefault("type", "resume")
-    payload["request"].setdefault("format", "json")
-    payload["request"].setdefault("model", res.meta.get("model"))
-
-    payload = sanitize_resume(payload)
-
-    return payload
-
-def structure_from_extract_json_str(extract_json_str: str, *, cfg: SciBoxConfig | None = None, schema: dict | None = None) -> Dict[str, Any]:
-    obj = json.loads(extract_json_str)
-    return structure_from_extract_json(obj, cfg=cfg, schema=schema)
+def structure_and_tags_from_extract_json(extract: Dict[str, Any], *, cfg: SciBoxConfig | None = None, k_tags: int = 15) -> Dict[str, Any]:
+    resume = structure_from_extract_json(extract, cfg=cfg)
+    tags = generate_tags(resume, k=k_tags, cfg=cfg)
+    return {"resume": resume, "tags": tags}
