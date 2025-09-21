@@ -8,7 +8,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
-# Установка uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 

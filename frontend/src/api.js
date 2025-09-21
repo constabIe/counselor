@@ -1,4 +1,4 @@
-const API_URL = 'https://api.hrcounselor.ru';
+const API_URL = import.meta.env.VITE_API_URL;
 
 async function parseError(response) {
   let body = null;
