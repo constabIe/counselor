@@ -1,5 +1,6 @@
 hrcounselor.ru {
-    reverse_proxy frontend:80
+    root * /usr/share/caddy
+    file_server
 }
 
 api.hrcounselor.ru {
