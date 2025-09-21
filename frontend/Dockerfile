@@ -8,3 +8,8 @@ RUN npm ci
 
 COPY frontend .
 RUN npm run build
+
+# Финальный контейнер только с собранным dist
+FROM caddy:2-alpine
+COPY --from=build /app/dist /usr/share/caddy
+
