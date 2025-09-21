@@ -1,4 +1,4 @@
-const API_URL = 'http://0.0.0.0:8000';
+const API_URL = 'https://0.0.0.0:8000';
 
 async function parseError(response) {
   let body = null;
