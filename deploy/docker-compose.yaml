@@ -31,7 +31,7 @@ services:
   # сервис только для билда фронта
   frontend-builder:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
     volumes:
       - ./static:/out
