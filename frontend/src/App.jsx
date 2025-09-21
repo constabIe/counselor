@@ -565,6 +565,20 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
     try {
       setIsLoading(true);
       setError(null);
+      setRegisterError('');
+
+      // Проверяем формат email
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(registerEmail)) {
+        setRegisterError('Некорректный формат email адреса');
+        return;
+      }
+
+      // Проверяем длину пароля
+      if (registerPassword.length < 6) {
+        setRegisterError('Пароль должен содержать минимум 6 символов');
+        return;
+      }
       
       // Преобразуем роль в нужный формат
       const roleMap = {
@@ -710,10 +724,6 @@ function AuthPage({ onBack, onRegisterEmployee, onRegisterHr, onLogin, onSetToke
               <label className="auth__field">
                 <span>Пароль</span>
                 <input type="password" value={registerPassword} onChange={(event) => setRegisterPassword(event.target.value)} placeholder="Придумайте пароль" />
-              </label>
-              <label className="auth__field">
-                <span>Повтор пароля</span>
-                <input type="password" value={registerConfirm} onChange={(event) => setRegisterConfirm(event.target.value)} placeholder="Повторите пароль" />
               </label>
             </div>
 
@@ -1486,10 +1496,24 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
     showXPNotificationWithLocalUpdate(10, `Вы откликнулись на вакансию "${jobTitle}"!`);
   };
 
+  // Состояния для модального окна покупки
+  const [purchaseModalOpen, setPurchaseModalOpen] = React.useState(false);
+  const [purchaseDetails, setPurchaseDetails] = React.useState(null);
+
   // Функция для покупки товара в магазине
-  const handleStorePurchase = (itemName, price) => {
-    // Здесь может быть логика проверки достаточности XP и реальная покупка
-    alert(`Вы успешно заказали "${itemName}" за ${price}!`);
+  const handleStorePurchase = (itemName, priceStr) => {
+    // Извлекаем числовое значение из строки цены (например, "500 XP" -> 500)
+    const price = parseInt(priceStr);
+    if (isNaN(price)) return;
+
+    setPurchaseDetails({ itemName, price });
+    setPurchaseModalOpen(true);
+  };
+
+  // Проверка достаточности XP
+  const hasEnoughXP = (requiredXP) => {
+    const currentXP = userProfile?.xp || 0;
+    return currentXP >= parseInt(requiredXP);
   };
 
   const [form, setForm] = React.useState({
@@ -2169,8 +2193,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Носки с логотипом', '500 XP')}
+                disabled={!hasEnoughXP(500)}
               >
-                Заказать
+                {hasEnoughXP(500) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2181,8 +2206,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Футболка компании', '1200 XP')}
+              disabled={!hasEnoughXP(1200)}
               >
-                Заказать
+                {hasEnoughXP(1200) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2193,8 +2219,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Кружка с логотипом', '800 XP')}
+              disabled={!hasEnoughXP(800)}
               >
-                Заказать
+                {hasEnoughXP(800) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2205,8 +2232,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Оплата питания', 'от 1000 XP')}
+              disabled={!hasEnoughXP(1000)}
               >
-                Пополнить
+                {hasEnoughXP(1000) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2217,8 +2245,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Сертификат Wildberries', '3000 XP')}
+              disabled={!hasEnoughXP(3000)}
               >
-                Заказать
+                {hasEnoughXP(3000) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2229,8 +2258,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Сертификат Ozon', '2500 XP')}
+              disabled={!hasEnoughXP(2500)}
               >
-                Заказать
+                {hasEnoughXP(2500) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2241,8 +2271,9 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Сертификат Пятёрочка', '2000 XP')}
+              disabled={!hasEnoughXP(2000)}
               >
-                Заказать
+                {hasEnoughXP(2000) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
             
@@ -2253,12 +2284,40 @@ function EmployeeDashboard({ data, onLogout, onReupload, onOpenTasks, showXPNoti
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleStorePurchase('Сертификат развлечений', '1500 XP')}
+              disabled={!hasEnoughXP(1500)}
               >
-                Заказать
+                {hasEnoughXP(1500) ? 'Заказать' : 'Недостаточно XP'}
               </button>
             </div>
           </div>
         </section>
+      )}
+
+      {/* Модальное окно подтверждения покупки */}
+      {purchaseModalOpen && (
+        <div className="modal-overlay" onClick={() => setPurchaseModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="icon-button icon-button--ghost modal-close" 
+              onClick={() => setPurchaseModalOpen(false)}
+            >
+              <CloseIcon className="icon icon--small" />
+            </button>
+            <div className="modal-body">
+              <h3>Покупка совершена!</h3>
+              <p>Вы успешно приобрели товар "{purchaseDetails?.itemName}"</p>
+              <p>Списано {purchaseDetails?.price} XP</p>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-green" 
+                onClick={() => setPurchaseModalOpen(false)}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
